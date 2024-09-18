@@ -1,7 +1,8 @@
-<!-- BEGIN_TF_DOCS -->
-# Default example
 
-This deploys the module in its simplest form.
+<!-- BEGIN_TF_DOCS -->
+# Redundancy Scenarios Example
+
+This example tests different redundancy options for the Backup Vault module. It includes scenarios for LocallyRedundant, GeoRedundant, and ZoneRedundant configurations.
 
 ```hcl
 terraform {
@@ -22,12 +23,10 @@ terraform {
   }
 }
 
-
 provider "azurerm" {
   features {}
 }
 
-# Randomly select an Azure region for the resource group
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "~> 0.1"
@@ -42,30 +41,77 @@ module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
   suffix  = ["test"]
-
 }
 
-# Create a Resource Group in the randomly selected region
 resource "azurerm_resource_group" "example" {
   location = module.regions.regions[random_integer.region_index.result].name
   name     = module.naming.resource_group.name_unique
 }
 
-# Call the Backup Vault Module
-module "backup_vault_soft_delete" {
+module "backup_vault_geo_redundant" {
   source              = "../../" # Replace with correct module path
   location            = azurerm_resource_group.example.location
   name                = module.naming.recovery_services_vault.name_unique
   resource_group_name = azurerm_resource_group.example.name
 
   datastore_type      = "VaultStore"
-  redundancy          = "LocallyRedundant"
-  
-  # Enable soft delete and set a custom retention duration
-  soft_delete                 = "On"  # or "Off" or "AlwaysOn"
-  retention_duration_in_days  = 45    # Any value between 14 and 180 days
+  redundancy          = "GeoRedundant"
+  cross_region_restore_enabled = true  # This only works when redundancy is GeoRedundant
 
-  enable_telemetry = true # Enable telemetry (optional)
+  # Enable soft delete and set a custom retention duration
+  soft_delete                 = "On"
+  retention_duration_in_days  = 30
+
+  enable_telemetry = true
+}
+
+module "backup_vault_geo_redundant_no_cross_restore" {
+  source              = "../../" # Replace with correct module path
+  location            = azurerm_resource_group.example.location
+  name                = module.naming.recovery_services_vault.name_unique
+  resource_group_name = azurerm_resource_group.example.name
+
+  datastore_type      = "VaultStore"
+  redundancy          = "GeoRedundant"
+  cross_region_restore_enabled = false  # Explicitly set to false
+
+  # Enable soft delete and set a custom retention duration
+  soft_delete                 = "On"
+  retention_duration_in_days  = 30
+
+  enable_telemetry = true
+}
+
+module "backup_vault_locally_redundant" {
+  source              = "../../" # Replace with correct module path
+  location            = azurerm_resource_group.example.location
+  name                = module.naming.recovery_services_vault.name_unique
+  resource_group_name = azurerm_resource_group.example.name
+
+  datastore_type      = "VaultStore"
+  redundancy          = "LocallyRedundant" # No cross-region restore applicable here
+
+  # Enable soft delete and set a custom retention duration
+  soft_delete                 = "On"
+  retention_duration_in_days  = 45
+
+  enable_telemetry = true
+}
+
+module "backup_vault_zone_redundant" {
+  source              = "../../" # Replace with correct module path
+  location            = azurerm_resource_group.example.location
+  name                = module.naming.recovery_services_vault.name_unique
+  resource_group_name = azurerm_resource_group.example.name
+
+  datastore_type      = "VaultStore"
+  redundancy          = "ZoneRedundant" # No cross-region restore applicable
+
+  # Enable soft delete and set a custom retention duration
+  soft_delete                 = "On"
+  retention_duration_in_days  = 60
+
+  enable_telemetry = true
 }
 ```
 
@@ -74,9 +120,9 @@ module "backup_vault_soft_delete" {
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.5)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9.4)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.74)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.110.0, < 5.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
 
@@ -86,7 +132,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
@@ -128,7 +174,7 @@ Source: Azure/avm-utl-regions/azurerm
 
 Version: ~> 0.1
 
-### <a name="module_test"></a> [test](#module\_test)
+### <a name="module_backup_vault_soft_delete"></a> [backup_vault_soft_delete](#module\_backup_vault_soft_delete)
 
 Source: ../../
 
