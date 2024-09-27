@@ -46,11 +46,11 @@ resource "azurerm_resource_group" "example" {
 
 # Create a Storage Account for Blob Storage
 resource "azurerm_storage_account" "example" {
+  account_replication_type = "LRS"
+  account_tier             = "Standard"
+  location                 = azurerm_resource_group.example.location
   name                     = module.naming.storage_account.name_unique
   resource_group_name      = azurerm_resource_group.example.name
-  location                 = azurerm_resource_group.example.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
 }
 
 # Create a Storage Container
@@ -64,29 +64,29 @@ resource "azurerm_storage_container" "example" {
 module "backup_vault" {
   source = "../../"
 
-  location                       = azurerm_resource_group.example.location
-  name                           = "${module.naming.recovery_services_vault.name_unique}-vault"
-  resource_group_name            = azurerm_resource_group.example.name
-  datastore_type                 = "VaultStore"
-  redundancy                     = "LocallyRedundant"
-  vault_default_retention_duration = "P90D"
+  location                               = azurerm_resource_group.example.location
+  name                                   = "${module.naming.recovery_services_vault.name_unique}-vault"
+  resource_group_name                    = azurerm_resource_group.example.name
+  datastore_type                         = "VaultStore"
+  redundancy                             = "LocallyRedundant"
+  vault_default_retention_duration       = "P90D"
   operational_default_retention_duration = "P30D"
-  identity_enabled               = true
-  enable_telemetry               = true
+  identity_enabled                       = true
+  enable_telemetry                       = true
 
   # Inputs for backup policy and backup instance
-  backup_policy_name             = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-  blob_backup_instance_name      = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
-  storage_account_id             = azurerm_storage_account.example.id
-  backup_policy_id               = module.backup_vault.backup_policy_id
+  backup_policy_name        = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
+  blob_backup_instance_name = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
+  storage_account_id        = azurerm_storage_account.example.id
+  backup_policy_id          = module.backup_vault.backup_policy_id
 
   storage_account_container_names = [azurerm_storage_container.example.name]
 
   role_assignments = {
     example_assignment = {
-      principal_id = module.backup_vault.identity_principal_id
+      principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Storage Account Backup Contributor"
-      scope = azurerm_storage_account.example.id
+      scope                      = azurerm_storage_account.example.id
     }
   }
 
@@ -105,7 +105,7 @@ module "backup_vault" {
       }]
       life_cycle = [{
         data_store_type = "VaultStore"
-        duration        = "P30D"  # Specify a valid retention duration here
+        duration        = "P30D" # Specify a valid retention duration here
       }]
     },
     {
@@ -117,7 +117,7 @@ module "backup_vault" {
       }]
       life_cycle = [{
         data_store_type = "VaultStore"
-        duration        = "P30D"  # Specify a valid retention duration here
+        duration        = "P30D" # Specify a valid retention duration here
       }]
     }
   ]

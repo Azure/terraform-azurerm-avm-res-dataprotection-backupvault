@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 # Blob Backup Storage Example
 
-This example demonstrates how to deploy the `azurerm_data_protection_backup_vault` module along with blob backup storage, backup policy, and associated features such as managed identity, soft delete, retention rules, and role assignments.
+This example demonstrates how to deploy the `azurerm_data_protection_backup_vault` module with a blob backup instance, backup policy, and storage account for a comprehensive data protection solution.
 
 ```hcl
 terraform {
@@ -37,10 +37,11 @@ resource "random_integer" "region_index" {
   min = 0
 }
 
+# Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["test"]
+  suffix  = ["blob"]
 }
 
 # Create a Resource Group in the randomly selected region
@@ -51,59 +52,81 @@ resource "azurerm_resource_group" "example" {
 
 # Create a Storage Account for Blob Storage
 resource "azurerm_storage_account" "example" {
+  account_replication_type = "LRS"
+  account_tier             = "Standard"
+  location                 = azurerm_resource_group.example.location
   name                     = module.naming.storage_account.name_unique
   resource_group_name      = azurerm_resource_group.example.name
-  location                 = azurerm_resource_group.example.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
 }
 
-# Call the Backup Vault Module
+# Create a Storage Container
+resource "azurerm_storage_container" "example" {
+  name                  = "example-container"
+  storage_account_name  = azurerm_storage_account.example.name
+  container_access_type = "private"
+}
+
+# Module Call
 module "backup_vault" {
-  source = "../../" # Replace with correct module path
-  location            = azurerm_resource_group.example.location
-  name                = "${module.naming.recovery_services_vault.name_unique}-vault"
-  resource_group_name = azurerm_resource_group.example.name
+  source = "../../"
 
-  datastore_type      = "VaultStore"
-  redundancy          = "LocallyRedundant"
+  location                               = azurerm_resource_group.example.location
+  name                                   = "${module.naming.recovery_services_vault.name_unique}-vault"
+  resource_group_name                    = azurerm_resource_group.example.name
+  datastore_type                         = "VaultStore"
+  redundancy                             = "LocallyRedundant"
+  vault_default_retention_duration       = "P90D"
+  operational_default_retention_duration = "P30D"
+  identity_enabled                       = true
+  enable_telemetry                       = true
 
-  identity_enabled               = true
-  enable_telemetry               = true
+  # Inputs for backup policy and backup instance
+  backup_policy_name        = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
+  blob_backup_instance_name = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
+  storage_account_id        = azurerm_storage_account.example.id
+  backup_policy_id          = module.backup_vault.backup_policy_id
 
-  backup_policy_name             = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-  blob_backup_instance_name      = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
-  storage_account_id             = azurerm_storage_account.example.id
+  storage_account_container_names = [azurerm_storage_container.example.name]
 
+  role_assignments = {
+    example_assignment = {
+      principal_id               = module.backup_vault.identity_principal_id
+      role_definition_id_or_name = "Storage Account Backup Contributor"
+      scope                      = azurerm_storage_account.example.id
+    }
+  }
+
+  # Valid repeating intervals for backup
+  backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+  time_zone                       = "Central Standard Time"
+
+  # Define the retention rules list here
   retention_rules = [
     {
-      name     = "MonthlyRetention"
-      duration = "P1Y"
-      priority = 1
-      criteria = [
-        {
-          absolute_criteria     = "FirstOfMonth"
-          days_of_month         = [1]
-          days_of_week          = ["Monday"]
-          months_of_year        = ["January", "February", "March"]
-          scheduled_backup_times = ["2023-01-01T00:00:00Z"]
-        }
-      ]
-      life_cycle = [
-        {
-          data_store_type = "VaultStore"
-          duration        = "P1Y"
-        }
-      ]
+      name     = "Daily"
+      duration = "P7D"
+      priority = 25
+      criteria = [{
+        absolute_criteria = "FirstOfDay"
+      }]
+      life_cycle = [{
+        data_store_type = "VaultStore"
+        duration        = "P30D" # Specify a valid retention duration here
+      }]
+    },
+    {
+      name     = "Weekly"
+      duration = "P7D"
+      priority = 20
+      criteria = [{
+        absolute_criteria = "FirstOfWeek"
+      }]
+      life_cycle = [{
+        data_store_type = "VaultStore"
+        duration        = "P30D" # Specify a valid retention duration here
+      }]
     }
   ]
-}
-
-# Assign the managed identity role for the vault
-resource "azurerm_role_assignment" "backup_vault_assignment" {
-  principal_id         = module.backup_vault.managed_identity_principal_id
-  role_definition_name = "Storage Account Backup Contributor"
-  scope                = azurerm_storage_account.example.id
 }
 ```
 
@@ -112,9 +135,9 @@ resource "azurerm_role_assignment" "backup_vault_assignment" {
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.5)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9.4)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.110)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.110.0, < 5.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
 
@@ -126,7 +149,7 @@ The following resources are used by this module:
 
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
-- [azurerm_role_assignment.backup_vault_assignment](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
+- [azurerm_storage_container.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
@@ -148,6 +171,14 @@ Type: `bool`
 
 Default: `true`
 
+### <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id)
+
+Description: Subscription ID to be used
+
+Type: `string`
+
+Default: `"b4b418d1-7fb5-41a9-952d-ffbff78e61b6"`
+
 ## Outputs
 
 No outputs.
@@ -155,6 +186,12 @@ No outputs.
 ## Modules
 
 The following Modules are called:
+
+### <a name="module_backup_vault"></a> [backup\_vault](#module\_backup\_vault)
+
+Source: ../../
+
+Version:
 
 ### <a name="module_naming"></a> [naming](#module\_naming)
 
@@ -168,15 +205,8 @@ Source: Azure/avm-utl-regions/azurerm
 
 Version: ~> 0.1
 
-### <a name="module_backup_vault"></a> [backup_vault](#module\_backup_vault)
-
-Source: ../../
-
-Version:
-
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection
 
 The software may collect information about you and your use of the software and send it to Microsoft. Microsoft may use this information to provide services and improve our products and services. You may turn off the telemetry as described in the repository. There are also some features in the software that may enable you and Microsoft to collect data from users of your applications. If you use these features, you must comply with applicable law, including providing appropriate notices to users of your applications together with a copy of Microsoft’s privacy statement. Our privacy statement is located at <https://go.microsoft.com/fwlink/?LinkID=824704>. You can learn more about data collection and use in the help documentation and our privacy statement. Your use of the software operates as your consent to these practices.
 <!-- END_TF_DOCS -->
-```

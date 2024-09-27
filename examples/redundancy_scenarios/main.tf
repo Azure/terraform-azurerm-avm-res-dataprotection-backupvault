@@ -69,13 +69,13 @@ module "backup_vault_geo_redundant_no_cross_restore" {
   name                = module.naming.recovery_services_vault.name_unique
   resource_group_name = azurerm_resource_group.example.name
 
-  datastore_type      = "VaultStore"
-  redundancy          = "GeoRedundant"
-  cross_region_restore_enabled = false  # Explicitly set to false
+  datastore_type               = "VaultStore"
+  redundancy                   = "GeoRedundant"
+  cross_region_restore_enabled = false # Explicitly set to false
 
   # Enable soft delete and set a custom retention duration
-  soft_delete                 = "On"
-  retention_duration_in_days  = 30
+  soft_delete                = "On"
+  retention_duration_in_days = 30
 
   enable_telemetry = true
 }

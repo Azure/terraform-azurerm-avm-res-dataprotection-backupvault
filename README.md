@@ -24,9 +24,9 @@ Things to do:
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.5)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9.4)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.71)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.110.0, < 5.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
 
@@ -36,11 +36,14 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azurerm_data_protection_backup_instance_blob_storage.blob_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_blob_storage) (resource)
+- [azurerm_data_protection_backup_instance_disk.disk_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_disk) (resource)
+- [azurerm_data_protection_backup_instance_postgresql.postgresql_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql) (resource)
+- [azurerm_data_protection_backup_policy_blob_storage.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_blob_storage) (resource)
+- [azurerm_data_protection_backup_policy_disk.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_disk) (resource)
+- [azurerm_data_protection_backup_policy_postgresql.postgresql_backup_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql) (resource)
+- [azurerm_data_protection_backup_vault.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_vault) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
-- [azurerm_private_endpoint.this_managed_dns_zone_groups](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
-- [azurerm_private_endpoint.this_unmanaged_dns_zone_groups](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
-- [azurerm_private_endpoint_application_security_group_association.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint_application_security_group_association) (resource)
-- [azurerm_resource_group.TODO](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
@@ -52,6 +55,13 @@ The following resources are used by this module:
 
 The following input variables are required:
 
+### <a name="input_datastore_type"></a> [datastore\_type](#input\_datastore\_type)
+
+Description: Specifies the type of the datastore. Changing this forces a new resource to be created.  
+Valid options: ArchiveStore, OperationalStore, SnapshotStore, VaultStore.
+
+Type: `string`
+
 ### <a name="input_location"></a> [location](#input\_location)
 
 Description: Azure region where the resource should be deployed.
@@ -60,7 +70,20 @@ Type: `string`
 
 ### <a name="input_name"></a> [name](#input\_name)
 
-Description: The name of the this resource.
+Description: The name of this resource. Must be between 5 and 50 characters long.
+
+Type: `string`
+
+### <a name="input_postgresql_flexible_backup_instance_name"></a> [postgresql\_flexible\_backup\_instance\_name](#input\_postgresql\_flexible\_backup\_instance\_name)
+
+Description: Name of the PostgreSQL Flexible Backup instance.
+
+Type: `string`
+
+### <a name="input_redundancy"></a> [redundancy](#input\_redundancy)
+
+Description: Specifies the backup storage redundancy. Changing this forces a new resource to be created.  
+Valid options: GeoRedundant, LocallyRedundant, ZoneRedundant.
 
 Type: `string`
 
@@ -73,6 +96,46 @@ Type: `string`
 ## Optional Inputs
 
 The following input variables are optional (have default values):
+
+### <a name="input_backup_policy_id"></a> [backup\_policy\_id](#input\_backup\_policy\_id)
+
+Description: The ID of the Backup Policy that applies to the Backup Instance Blob Storage.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_backup_policy_name"></a> [backup\_policy\_name](#input\_backup\_policy\_name)
+
+Description: The name which should be used for this Backup Policy Blob Storage.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_backup_repeating_time_intervals"></a> [backup\_repeating\_time\_intervals](#input\_backup\_repeating\_time\_intervals)
+
+Description: Specifies a list of repeating time intervals in ISO 8601 format.
+
+Type: `list(string)`
+
+Default: `[]`
+
+### <a name="input_blob_backup_instance_name"></a> [blob\_backup\_instance\_name](#input\_blob\_backup\_instance\_name)
+
+Description: The name of the Backup Instance Blob Storage.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_cross_region_restore_enabled"></a> [cross\_region\_restore\_enabled](#input\_cross\_region\_restore\_enabled)
+
+Description: Whether to enable cross-region restore for the Backup Vault. Can only be enabled with GeoRedundant redundancy.
+
+Type: `bool`
+
+Default: `false`
 
 ### <a name="input_customer_managed_key"></a> [customer\_managed\_key](#input\_customer\_managed\_key)
 
@@ -95,6 +158,14 @@ object({
     }), null)
   })
 ```
+
+Default: `null`
+
+### <a name="input_default_retention_duration"></a> [default\_retention\_duration](#input\_default\_retention\_duration)
+
+Description: The duration of the default retention rule in ISO 8601 format.
+
+Type: `string`
 
 Default: `null`
 
@@ -132,6 +203,22 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_disk_backup_instance_name"></a> [disk\_backup\_instance\_name](#input\_disk\_backup\_instance\_name)
+
+Description: The name of the Backup Instance Disk.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_disk_id"></a> [disk\_id](#input\_disk\_id)
+
+Description: The ID of the source Disk for Backup.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
 
 Description: This variable controls whether or not telemetry is enabled for the module.  
@@ -141,6 +228,14 @@ If it is set to false, then no telemetry will be collected.
 Type: `bool`
 
 Default: `true`
+
+### <a name="input_identity_enabled"></a> [identity\_enabled](#input\_identity\_enabled)
+
+Description: Whether to enable Managed Service Identity for the Backup Vault.
+
+Type: `bool`
+
+Default: `false`
 
 ### <a name="input_lock"></a> [lock](#input\_lock)
 
@@ -178,69 +273,81 @@ object({
 
 Default: `{}`
 
-### <a name="input_private_endpoints"></a> [private\_endpoints](#input\_private\_endpoints)
+### <a name="input_operational_default_retention_duration"></a> [operational\_default\_retention\_duration](#input\_operational\_default\_retention\_duration)
 
-Description: A map of private endpoints to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+Description: The duration of operational default retention rule in ISO 8601 format.
 
-- `name` - (Optional) The name of the private endpoint. One will be generated if not set.
-- `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
-- `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
-- `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
-- `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
-- `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
-- `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-- `private_service_connection_name` - (Optional) The name of the private service connection. One will be generated if not set.
-- `network_interface_name` - (Optional) The name of the network interface. One will be generated if not set.
-- `location` - (Optional) The Azure location where the resources will be deployed. Defaults to the location of the resource group.
-- `resource_group_name` - (Optional) The resource group where the resources will be deployed. Defaults to the resource group of this resource.
-- `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-  - `name` - The name of the IP configuration.
-  - `private_ip_address` - The private IP address of the IP configuration.
+Type: `string`
+
+Default: `null`
+
+### <a name="input_postgresql_backup_instance_name"></a> [postgresql\_backup\_instance\_name](#input\_postgresql\_backup\_instance\_name)
+
+Description: The name of the Backup Instance PostgreSQL.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_postgresql_backup_policy_id"></a> [postgresql\_backup\_policy\_id](#input\_postgresql\_backup\_policy\_id)
+
+Description: The ID of the Backup Policy PostgreSQL.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_postgresql_database_id"></a> [postgresql\_database\_id](#input\_postgresql\_database\_id)
+
+Description: The ID of the source PostgreSQL database.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_postgresql_key_vault_secret_id"></a> [postgresql\_key\_vault\_secret\_id](#input\_postgresql\_key\_vault\_secret\_id)
+
+Description: The ID of the key vault secret that stores the database credentials.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_retention_duration_in_days"></a> [retention\_duration\_in\_days](#input\_retention\_duration\_in\_days)
+
+Description: The soft delete retention duration for this Backup Vault. Valid values are between 14 and 180. Defaults to 14.
+
+Type: `number`
+
+Default: `14`
+
+### <a name="input_retention_rules"></a> [retention\_rules](#input\_retention\_rules)
+
+Description: List of retention rules for the backup policy. Optional, can be left as an empty list.
 
 Type:
 
 ```hcl
-map(object({
-    name = optional(string, null)
-    role_assignments = optional(map(object({
-      role_definition_id_or_name             = string
-      principal_id                           = string
-      description                            = optional(string, null)
-      skip_service_principal_aad_check       = optional(bool, false)
-      condition                              = optional(string, null)
-      condition_version                      = optional(string, null)
-      delegated_managed_identity_resource_id = optional(string, null)
-    })), {})
-    lock = optional(object({
-      kind = string
-      name = optional(string, null)
-    }), null)
-    tags                                    = optional(map(string), null)
-    subnet_resource_id                      = string
-    private_dns_zone_group_name             = optional(string, "default")
-    private_dns_zone_resource_ids           = optional(set(string), [])
-    application_security_group_associations = optional(map(string), {})
-    private_service_connection_name         = optional(string, null)
-    network_interface_name                  = optional(string, null)
-    location                                = optional(string, null)
-    resource_group_name                     = optional(string, null)
-    ip_configurations = optional(map(object({
-      name               = string
-      private_ip_address = string
-    })), {})
+list(object({
+    name     = string
+    duration = optional(string, null) # Make duration optional to support both cases
+    priority = number
+    criteria = list(object({
+      absolute_criteria      = string
+      days_of_month          = optional(list(number), null)
+      days_of_week           = optional(list(string), null)
+      months_of_year         = optional(list(string), null)
+      scheduled_backup_times = optional(list(string), null)
+      weeks_of_month         = optional(list(string), null)
+    }))
+    life_cycle = optional(list(object({
+      data_store_type = string
+      duration        = string
+    })), [])
   }))
 ```
 
-Default: `{}`
-
-### <a name="input_private_endpoints_manage_dns_zone_group"></a> [private\_endpoints\_manage\_dns\_zone\_group](#input\_private\_endpoints\_manage\_dns\_zone\_group)
-
-Description: Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy.
-
-Type: `bool`
-
-Default: `true`
+Default: `[]`
 
 ### <a name="input_role_assignments"></a> [role\_assignments](#input\_role\_assignments)
 
@@ -261,6 +368,7 @@ Type:
 map(object({
     role_definition_id_or_name             = string
     principal_id                           = string
+    scope                                  = string
     description                            = optional(string, null)
     skip_service_principal_aad_check       = optional(bool, false)
     condition                              = optional(string, null)
@@ -271,6 +379,47 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_server_id"></a> [server\_id](#input\_server\_id)
+
+Description: The ID of the PostgreSQL Flexible Server to be backed up.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_snapshot_resource_group_name"></a> [snapshot\_resource\_group\_name](#input\_snapshot\_resource\_group\_name)
+
+Description: The name of the Resource Group where snapshots are stored.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_soft_delete"></a> [soft\_delete](#input\_soft\_delete)
+
+Description: The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to On.  
+Once set to AlwaysOn, the setting cannot be changed.
+
+Type: `string`
+
+Default: `"On"`
+
+### <a name="input_storage_account_container_names"></a> [storage\_account\_container\_names](#input\_storage\_account\_container\_names)
+
+Description: Optional list of container names in the source Storage Account.
+
+Type: `list(string)`
+
+Default: `[]`
+
+### <a name="input_storage_account_id"></a> [storage\_account\_id](#input\_storage\_account\_id)
+
+Description: The ID of the source Storage Account for the Backup Instance.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_tags"></a> [tags](#input\_tags)
 
 Description: (Optional) Tags of the resource.
@@ -279,13 +428,81 @@ Type: `map(string)`
 
 Default: `null`
 
+### <a name="input_time_zone"></a> [time\_zone](#input\_time\_zone)
+
+Description: Specifies the Time Zone which should be used by the backup schedule.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_timeout_create"></a> [timeout\_create](#input\_timeout\_create)
+
+Description: The timeout duration for creating the Backup Instance Blob Storage.
+
+Type: `string`
+
+Default: `"30m"`
+
+### <a name="input_timeout_delete"></a> [timeout\_delete](#input\_timeout\_delete)
+
+Description: The timeout duration for deleting the Backup Instance Blob Storage.
+
+Type: `string`
+
+Default: `"30m"`
+
+### <a name="input_timeout_read"></a> [timeout\_read](#input\_timeout\_read)
+
+Description: The timeout duration for reading the Backup Instance Blob Storage.
+
+Type: `string`
+
+Default: `"5m"`
+
+### <a name="input_timeout_update"></a> [timeout\_update](#input\_timeout\_update)
+
+Description: The timeout duration for updating the Backup Instance Blob Storage.
+
+Type: `string`
+
+Default: `"30m"`
+
+### <a name="input_vault_default_retention_duration"></a> [vault\_default\_retention\_duration](#input\_vault\_default\_retention\_duration)
+
+Description: The duration of vault default retention rule in ISO 8601 format.
+
+Type: `string`
+
+Default: `null`
+
 ## Outputs
 
 The following outputs are exported:
 
-### <a name="output_private_endpoints"></a> [private\_endpoints](#output\_private\_endpoints)
+### <a name="output_backup_policy_blob_storage_id"></a> [backup\_policy\_blob\_storage\_id](#output\_backup\_policy\_blob\_storage\_id)
 
-Description:   A map of the private endpoints created.
+Description: The ID of the Blob Storage Backup Policy.
+
+### <a name="output_backup_policy_id"></a> [backup\_policy\_id](#output\_backup\_policy\_id)
+
+Description: The ID of the Backup Policy.
+
+### <a name="output_backup_vault_id"></a> [backup\_vault\_id](#output\_backup\_vault\_id)
+
+Description: The ID of the Backup Vault.
+
+### <a name="output_blob_backup_instance_id"></a> [blob\_backup\_instance\_id](#output\_blob\_backup\_instance\_id)
+
+Description: The ID of the Blob Backup Instance.
+
+### <a name="output_identity_principal_id"></a> [identity\_principal\_id](#output\_identity\_principal\_id)
+
+Description: The Principal ID for the Service Principal associated with the Identity of this Backup Vault.
+
+### <a name="output_identity_tenant_id"></a> [identity\_tenant\_id](#output\_identity\_tenant\_id)
+
+Description: The Tenant ID for the Service Principal associated with the Identity of this Backup Vault.
 
 ## Modules
 

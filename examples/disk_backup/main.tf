@@ -46,11 +46,11 @@ resource "azurerm_resource_group" "example" {
 
 # Create a Managed Disk
 resource "azurerm_managed_disk" "example" {
-  name                 = "${module.naming.managed_disk.name_unique}-disk"
+  create_option        = "Empty"
   location             = azurerm_resource_group.example.location
+  name                 = "${module.naming.managed_disk.name_unique}-disk"
   resource_group_name  = azurerm_resource_group.example.name
   storage_account_type = "Standard_LRS"
-  create_option        = "Empty"
   disk_size_gb         = 64
 }
 
@@ -58,37 +58,37 @@ resource "azurerm_managed_disk" "example" {
 module "backup_vault" {
   source = "../../"
 
-  location                       = azurerm_resource_group.example.location
-  name                           = "${module.naming.recovery_services_vault.name_unique}-vault"
-  resource_group_name            = azurerm_resource_group.example.name
-  datastore_type                 = "VaultStore"
-  redundancy                     = "LocallyRedundant"
-  vault_default_retention_duration = "P90D"
+  location                               = azurerm_resource_group.example.location
+  name                                   = "${module.naming.recovery_services_vault.name_unique}-vault"
+  resource_group_name                    = azurerm_resource_group.example.name
+  datastore_type                         = "VaultStore"
+  redundancy                             = "LocallyRedundant"
+  vault_default_retention_duration       = "P90D"
   operational_default_retention_duration = "P30D"
-  default_retention_duration     = "P4M"
-  identity_enabled               = true
-  enable_telemetry               = true
+  default_retention_duration             = "P4M"
+  identity_enabled                       = true
+  enable_telemetry                       = true
 
   # Inputs for backup policy and backup instance
-  backup_policy_name             = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-  disk_backup_instance_name      = "${module.naming.recovery_services_vault.name_unique}-disk-instance"
-  disk_id                        = azurerm_managed_disk.example.id
-  snapshot_resource_group_name   = azurerm_resource_group.example.name
-  backup_policy_id               = module.backup_vault.backup_policy_id
+  backup_policy_name           = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
+  disk_backup_instance_name    = "${module.naming.recovery_services_vault.name_unique}-disk-instance"
+  disk_id                      = azurerm_managed_disk.example.id
+  snapshot_resource_group_name = azurerm_resource_group.example.name
+  backup_policy_id             = module.backup_vault.backup_policy_id
 
   role_assignments = {
     # Assign Disk Snapshot Contributor role to the Snapshot Resource Group
     snapshot_contributor = {
-      principal_id             = module.backup_vault.identity_principal_id
+      principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Disk Snapshot Contributor"
-      scope                    = azurerm_resource_group.example.id  # Snapshot Resource Group scope
+      scope                      = azurerm_resource_group.example.id # Snapshot Resource Group scope
     }
 
     # Assign Disk Backup Reader role to the Disk
     backup_reader = {
-      principal_id             = module.backup_vault.identity_principal_id
+      principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Disk Backup Reader"
-      scope                    = azurerm_managed_disk.example.id  # Disk resource scope
+      scope                      = azurerm_managed_disk.example.id # Disk resource scope
     }
   }
 
@@ -108,7 +108,7 @@ module "backup_vault" {
       }]
       life_cycle = [{
         data_store_type = "VaultStore"
-        duration        = "P30D"  # Specify a valid retention duration here
+        duration        = "P30D" # Specify a valid retention duration here
       }]
     },
     {
@@ -120,7 +120,7 @@ module "backup_vault" {
       }]
       life_cycle = [{
         data_store_type = "VaultStore"
-        duration        = "P30D"  # Specify a valid retention duration here
+        duration        = "P30D" # Specify a valid retention duration here
       }]
     }
   ]

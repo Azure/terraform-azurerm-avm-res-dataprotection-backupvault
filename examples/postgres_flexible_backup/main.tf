@@ -47,8 +47,8 @@ resource "azurerm_resource_group" "example" {
 
 # Create a PostgreSQL Flexible Server
 resource "azurerm_postgresql_flexible_server" "example" {
-  name                   = module.naming.postgresql_server.name_unique
   location               = azurerm_resource_group.example.location
+  name                   = module.naming.postgresql_server.name_unique
   resource_group_name    = azurerm_resource_group.example.name
   administrator_login    = "psqladmin"
   administrator_password = "H@Sh1CoR3!"
@@ -62,25 +62,25 @@ resource "azurerm_postgresql_flexible_server" "example" {
 module "backup_vault" {
   source = "../../"
 
-  location                       = azurerm_resource_group.example.location
-  name                           = "backup-vault-postgresql-flex"
-  resource_group_name            = azurerm_resource_group.example.name
-  datastore_type                 = "VaultStore"
-  redundancy                     = "LocallyRedundant"
-  default_retention_duration     = "P4M"
-  identity_enabled               = true
-  enable_telemetry               = true
+  location                   = azurerm_resource_group.example.location
+  name                       = "backup-vault-postgresql-flex"
+  resource_group_name        = azurerm_resource_group.example.name
+  datastore_type             = "VaultStore"
+  redundancy                 = "LocallyRedundant"
+  default_retention_duration = "P4M"
+  identity_enabled           = true
+  enable_telemetry           = true
 
   # Inputs for PostgreSQL Flexible backup policy and backup instance
-  backup_policy_name             = "${module.naming.postgresql_server.name_unique}-backup-policy"
+  backup_policy_name                       = "${module.naming.postgresql_server.name_unique}-backup-policy"
   postgresql_flexible_backup_instance_name = "${module.naming.postgresql_server.name_unique}-postgresflex-instance"
-  server_id  = azurerm_postgresql_flexible_server.example.id
+  server_id                                = azurerm_postgresql_flexible_server.example.id
 
   role_assignments = {
     postgresql_Contributor = {
-      principal_id             = module.backup_vault.identity_principal_id
+      principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Contributor"
-      scope                    = azurerm_postgresql_flexible_server.example.id
+      scope                      = azurerm_postgresql_flexible_server.example.id
     }
   }
 
@@ -90,7 +90,7 @@ module "backup_vault" {
       name     = "Daily"
       duration = "P7D"
       priority = 25
-      criteria = [ { absolute_criteria = "FirstOfDay" } ]
+      criteria = [{ absolute_criteria = "FirstOfDay" }]
     }
   ]
 }

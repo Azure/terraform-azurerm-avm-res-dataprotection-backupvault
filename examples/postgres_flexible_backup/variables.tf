@@ -9,7 +9,7 @@ DESCRIPTION
 }
 
 variable "tenant_id" {
-  description = "The tenant ID for the Azure Key Vault"
   type        = string
   default     = null
+  description = "The tenant ID for the Azure Key Vault"
 }

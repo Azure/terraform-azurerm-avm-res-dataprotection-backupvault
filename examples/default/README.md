@@ -52,19 +52,15 @@ resource "azurerm_resource_group" "example" {
 }
 
 # Call the Backup Vault Module
-module "backup_vault_soft_delete" {
+module "backup_vault" {
   source              = "../../" # Replace with correct module path
   location            = azurerm_resource_group.example.location
   name                = module.naming.recovery_services_vault.name_unique
   resource_group_name = azurerm_resource_group.example.name
 
-  datastore_type      = "VaultStore"
-  redundancy          = "LocallyRedundant"
-  
-  # Enable soft delete and set a custom retention duration
-  soft_delete                 = "On"  # or "Off" or "AlwaysOn"
-  retention_duration_in_days  = 45    # Any value between 14 and 180 days
-
+  # Minimum required variables
+  datastore_type   = "VaultStore"
+  redundancy       = "GeoRedundant"
   enable_telemetry = true # Enable telemetry (optional)
 }
 ```
@@ -74,9 +70,9 @@ module "backup_vault_soft_delete" {
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.5)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9.4)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 3.74)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.110.0, < 5.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
 
@@ -86,7 +82,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
@@ -116,6 +112,12 @@ No outputs.
 
 The following Modules are called:
 
+### <a name="module_backup_vault"></a> [backup\_vault](#module\_backup\_vault)
+
+Source: ../../
+
+Version:
+
 ### <a name="module_naming"></a> [naming](#module\_naming)
 
 Source: Azure/naming/azurerm
@@ -127,12 +129,6 @@ Version: ~> 0.3
 Source: Azure/avm-utl-regions/azurerm
 
 Version: ~> 0.1
-
-### <a name="module_test"></a> [test](#module\_test)
-
-Source: ../../
-
-Version:
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

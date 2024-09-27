@@ -9,8 +9,7 @@ DESCRIPTION
 }
 
 variable "subscription_id" {
-  description = "Subscription ID to be used"
   type        = string
-  default = "b4b418d1-7fb5-41a9-952d-ffbff78e61b6"
+  default     = "b4b418d1-7fb5-41a9-952d-ffbff78e61b6"
+  description = "Subscription ID to be used"
 }
-

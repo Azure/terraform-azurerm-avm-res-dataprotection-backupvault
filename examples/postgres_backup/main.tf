@@ -40,57 +40,53 @@ resource "azurerm_resource_group" "example" {
 
 # Create a PostgreSQL Server and Database
 resource "azurerm_postgresql_server" "example" {
-  name                = module.naming.postgresql_server.name_unique
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
-
-  administrator_login          = "psqladmin"
-  administrator_login_password = "H@Sh1CoR3!"
-
-  sku_name   = "GP_Gen5_4"
-  version    = "11"
-  storage_mb = 640000
-
-  backup_retention_days        = 7
-  geo_redundant_backup_enabled = true
-  auto_grow_enabled            = true
-
-  public_network_access_enabled    = false
+  location                         = azurerm_resource_group.example.location
+  name                             = module.naming.postgresql_server.name_unique
+  resource_group_name              = azurerm_resource_group.example.name
+  sku_name                         = "GP_Gen5_4"
   ssl_enforcement_enabled          = true
+  version                          = "11"
+  administrator_login              = "psqladmin"
+  administrator_login_password     = "H@Sh1CoR3!"
+  auto_grow_enabled                = true
+  backup_retention_days            = 7
+  geo_redundant_backup_enabled     = true
+  public_network_access_enabled    = false
   ssl_minimal_tls_version_enforced = "TLS1_2"
+  storage_mb                       = 640000
 }
 
 resource "azurerm_postgresql_database" "example" {
+  charset             = "UTF8"
+  collation           = "English_United States.1252"
   name                = module.naming.postgresql_database.name_unique
   resource_group_name = azurerm_resource_group.example.name
   server_name         = azurerm_postgresql_server.example.name
-  charset             = "UTF8"
-  collation           = "English_United States.1252"
 }
 
 # Module Call for PostgreSQL Backup Vault and Backup Policy
 module "backup_vault" {
   source = "../../"
 
-  location                       = azurerm_resource_group.example.location
-  name                           = "backup-vault-postgresql"
-  resource_group_name            = azurerm_resource_group.example.name
-  datastore_type                 = "VaultStore"
-  redundancy                     = "LocallyRedundant"
-  default_retention_duration     = "P4M"
-  identity_enabled               = true
-  enable_telemetry               = true
+  location                   = azurerm_resource_group.example.location
+  name                       = "backup-vault-postgresql"
+  resource_group_name        = azurerm_resource_group.example.name
+  datastore_type             = "VaultStore"
+  redundancy                 = "LocallyRedundant"
+  default_retention_duration = "P4M"
+  identity_enabled           = true
+  enable_telemetry           = true
 
   # Inputs for PostgreSQL backup policy and backup instance
-  backup_policy_name  = "${module.naming.postgresql_server.name_unique}-backup-policy"
+  backup_policy_name              = "${module.naming.postgresql_server.name_unique}-backup-policy"
   postgresql_backup_instance_name = "${module.naming.postgresql_database.name_unique}-postgressql-instance"
-  postgresql_database_id         = azurerm_postgresql_database.example.id
+  postgresql_database_id          = azurerm_postgresql_database.example.id
 
   role_assignments = {
     postgresql_Contributor = {
-      principal_id             = module.backup_vault.identity_principal_id
+      principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Contributor"
-      scope                    = azurerm_postgresql_server.example.id
+      scope                      = azurerm_postgresql_server.example.id
     }
   }
 
@@ -101,7 +97,7 @@ module "backup_vault" {
       name     = "Daily"
       duration = "P7D"
       priority = 25
-      criteria = [ { absolute_criteria = "FirstOfDay" } ]
+      criteria = [{ absolute_criteria = "FirstOfDay" }]
     }
   ]
 }
