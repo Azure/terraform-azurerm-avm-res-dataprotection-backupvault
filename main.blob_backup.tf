@@ -1,12 +1,12 @@
 # Backup Instance for Blob Storage
 resource "azurerm_data_protection_backup_instance_blob_storage" "blob_backup_instance" {
-  count = var.blob_backup_instance_name != null && var.backup_policy_id != null ? 1 : 0
+  count = var.blob_backup_instance_name != null ? 1 : 0
 
   name               = var.blob_backup_instance_name
   location           = var.location
   vault_id           = azurerm_data_protection_backup_vault.this.id
   storage_account_id = var.storage_account_id
-  backup_policy_id   = azurerm_data_protection_backup_policy_blob_storage.this[count.index].id  # Fix here
+  backup_policy_id   = try(azurerm_data_protection_backup_policy_blob_storage.this[0].id, null)  # Use try to handle the case when it doesn't exist
 
   storage_account_container_names = var.storage_account_container_names
 
@@ -22,6 +22,7 @@ resource "azurerm_data_protection_backup_instance_blob_storage" "blob_backup_ins
     delete = var.timeout_delete
   }
 }
+
 
 
 # Backup Policy for Blob Storage

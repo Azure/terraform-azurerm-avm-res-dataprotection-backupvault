@@ -331,13 +331,14 @@ variable "retention_rules" {
       scheduled_backup_times = optional(list(string), null)
       weeks_of_month        = optional(list(string), null)
     }))
-    life_cycle = list(object({
+    life_cycle = optional(list(object({
       data_store_type = string
       duration        = string
-    }))
+    })), [])
   }))
   default = []
 }
+
 
 # Disk Backup Instance Variables
 variable "disk_backup_instance_name" {
@@ -373,4 +374,15 @@ variable "default_retention_duration" {
   description = "The duration of the default retention rule in ISO 8601 format."
   type        = string
   default     = null
+}
+
+variable "server_id" {
+  description = "The ID of the PostgreSQL Flexible Server to be backed up."
+  type        = string
+  default     = null
+}
+
+variable "postgresql_flexible_backup_instance_name" {
+  type        = string
+  description = "Name of the PostgreSQL Flexible Backup instance."
 }

@@ -24,7 +24,7 @@ resource "azurerm_data_protection_backup_policy_disk" "this" {
   name                          = var.backup_policy_name
   vault_id                      = azurerm_data_protection_backup_vault.this.id
   backup_repeating_time_intervals = var.backup_repeating_time_intervals
-  default_retention_duration     = var.default_retention_duration != null ? var.default_retention_duration : "P30D"
+  default_retention_duration     = var.default_retention_duration
   time_zone                      = var.time_zone
 
   # Retention rules block (optional)

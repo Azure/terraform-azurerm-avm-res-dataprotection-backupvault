@@ -65,6 +65,7 @@ module "backup_vault" {
   redundancy                     = "LocallyRedundant"
   vault_default_retention_duration = "P90D"
   operational_default_retention_duration = "P30D"
+  default_retention_duration     = "P4M"
   identity_enabled               = true
   enable_telemetry               = true
 
