@@ -5,16 +5,16 @@ This example demonstrates how to deploy the `azurerm_data_protection_backup_vaul
 
 ```hcl
 terraform {
-  required_version = "~> 1.9.4"
+  required_version = "~> 1.9.3"
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 3.110.0, < 5.0"
     }
-    modtm = {
-      source  = "azure/modtm"
-      version = "~> 0.3"
-    }
+    # modtm = {
+    #   source  = "azure/modtm"
+    #   version = "~> 0.3"
+    # }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
@@ -138,11 +138,9 @@ module "backup_vault" {
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9.4)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9.3)
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.110.0, < 5.0)
-
-- <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
 

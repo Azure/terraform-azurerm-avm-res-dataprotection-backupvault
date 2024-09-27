@@ -28,11 +28,6 @@ variable "name" {
   }
 }
 
-variable "postgresql_flexible_backup_instance_name" {
-  type        = string
-  description = "Name of the PostgreSQL Flexible Backup instance."
-}
-
 variable "redundancy" {
   type        = string
   description = <<DESCRIPTION
@@ -243,6 +238,12 @@ variable "operational_default_retention_duration" {
   type        = string
   default     = null
   description = "The duration of operational default retention rule in ISO 8601 format."
+}
+
+variable "postgresql_flexible_backup_instance_name" {
+  type        = string
+  default     = null
+  description = "Name of the PostgreSQL Flexible Backup instance."
 }
 
 variable "retention_duration_in_days" {

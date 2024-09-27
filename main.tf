@@ -36,7 +36,6 @@ resource "azurerm_data_protection_backup_vault" "this" {
   soft_delete                  = var.soft_delete
   tags                         = var.tags
 
-  # Conditionally enable the identity block only when identity_enabled is true
   dynamic "identity" {
     for_each = var.identity_enabled ? [1] : []
 

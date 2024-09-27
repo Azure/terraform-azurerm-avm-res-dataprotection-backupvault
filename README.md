@@ -24,7 +24,7 @@ Things to do:
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9.4)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (~> 1.9.3)
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.110.0, < 5.0)
 
@@ -71,12 +71,6 @@ Type: `string`
 ### <a name="input_name"></a> [name](#input\_name)
 
 Description: The name of this resource. Must be between 5 and 50 characters long.
-
-Type: `string`
-
-### <a name="input_postgresql_flexible_backup_instance_name"></a> [postgresql\_flexible\_backup\_instance\_name](#input\_postgresql\_flexible\_backup\_instance\_name)
-
-Description: Name of the PostgreSQL Flexible Backup instance.
 
 Type: `string`
 
@@ -300,6 +294,14 @@ Default: `null`
 ### <a name="input_postgresql_database_id"></a> [postgresql\_database\_id](#input\_postgresql\_database\_id)
 
 Description: The ID of the source PostgreSQL database.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_postgresql_flexible_backup_instance_name"></a> [postgresql\_flexible\_backup\_instance\_name](#input\_postgresql\_flexible\_backup\_instance\_name)
+
+Description: Name of the PostgreSQL Flexible Backup instance.
 
 Type: `string`
 

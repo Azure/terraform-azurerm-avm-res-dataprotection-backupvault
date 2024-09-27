@@ -1,14 +1,14 @@
 terraform {
-  required_version = "~> 1.9.4"
+  required_version = "~> 1.9.3"
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 3.110.0, < 5.0"
     }
-    modtm = {
-      source  = "azure/modtm"
-      version = "~> 0.3"
-    }
+    # modtm = {
+    #   source  = "azure/modtm"
+    #   version = "~> 0.3"
+    # }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
@@ -56,6 +56,18 @@ resource "azurerm_postgresql_flexible_server" "example" {
   storage_mb             = 32768
   version                = "12"
   zone                   = "2"
+
+  # High Availability configuration with zone redundancy
+  high_availability {
+    mode                      = "ZoneRedundant" # Required, can be "ZoneRedundant" or "SameZone"
+    standby_availability_zone = "1"             # Specify a different zone for the standby replica
+  }
+  # Define a custom maintenance window
+  maintenance_window {
+    day_of_week  = 0 # 0 represents Sunday
+    start_hour   = 2 # 2 AM
+    start_minute = 0 # 00 minutes
+  }
 }
 
 # Call PostgreSQL Flexible Backup Vault and Backup Policy
