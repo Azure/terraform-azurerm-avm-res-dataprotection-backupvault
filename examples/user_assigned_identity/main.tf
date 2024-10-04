@@ -42,8 +42,8 @@ resource "azurerm_resource_group" "example" {
 
 # Create a User-Assigned Managed Identity
 resource "azurerm_user_assigned_identity" "example" {
-  name                = "${module.naming.resource_group.name_unique}-identity"
   location            = azurerm_resource_group.example.location
+  name                = "${module.naming.resource_group.name_unique}-identity"
   resource_group_name = azurerm_resource_group.example.name
 }
 
@@ -68,7 +68,7 @@ module "backup_vault" {
 
 # Assign Role for the Managed Identity
 resource "azurerm_role_assignment" "this" {
-  principal_id               = azurerm_user_assigned_identity.example.principal_id
-  role_definition_name       = "Contributor"
-  scope                      = azurerm_resource_group.example.id
+  principal_id         = azurerm_user_assigned_identity.example.principal_id
+  scope                = azurerm_resource_group.example.id
+  role_definition_name = "Contributor"
 }

@@ -11,17 +11,12 @@ terraform {
       source  = "hashicorp/azurerm"
       version = ">= 3.110.0, < 5.0"
     }
-    # modtm = {
-    #   source  = "azure/modtm"
-    #   version = "~> 0.3"
-    # }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
     }
   }
 }
-
 
 provider "azurerm" {
   features {}
@@ -38,11 +33,11 @@ resource "random_integer" "region_index" {
   min = 0
 }
 
+# Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
   suffix  = ["test"]
-
 }
 
 # Create a Resource Group in the randomly selected region
@@ -51,7 +46,14 @@ resource "azurerm_resource_group" "example" {
   name     = module.naming.resource_group.name_unique
 }
 
-# Call the Backup Vault Module
+# Create a User-Assigned Managed Identity
+resource "azurerm_user_assigned_identity" "example" {
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.resource_group.name_unique}-identity"
+  resource_group_name = azurerm_resource_group.example.name
+}
+
+# Call the Backup Vault Module and assign the User-Assigned Managed Identity
 module "backup_vault" {
   source              = "../../" # Replace with correct module path
   location            = azurerm_resource_group.example.location
@@ -61,7 +63,20 @@ module "backup_vault" {
   # Minimum required variables
   datastore_type   = "VaultStore"
   redundancy       = "GeoRedundant"
-  enable_telemetry = true # Enable telemetry (optional)
+  enable_telemetry = true
+
+  # Assign the User-Assigned Managed Identity
+  managed_identities = {
+    system_assigned            = false
+    user_assigned_resource_ids = [azurerm_user_assigned_identity.example.id]
+  }
+}
+
+# Assign Role for the Managed Identity
+resource "azurerm_role_assignment" "this" {
+  principal_id         = azurerm_user_assigned_identity.example.principal_id
+  scope                = azurerm_resource_group.example.id
+  role_definition_name = "Contributor"
 }
 ```
 
@@ -81,6 +96,8 @@ The following requirements are needed by this module:
 The following resources are used by this module:
 
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
+- [azurerm_user_assigned_identity.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
