@@ -27,3 +27,8 @@ output "identity_tenant_id" {
   description = "The Tenant ID for the Service Principal associated with the Identity of this Backup Vault."
   value       = try(azurerm_data_protection_backup_vault.this.identity[0].tenant_id, null)
 }
+
+output "resource_id" {
+  description = "The ID of the Backup Vault"
+  value       = azurerm_data_protection_backup_vault.this.id
+}

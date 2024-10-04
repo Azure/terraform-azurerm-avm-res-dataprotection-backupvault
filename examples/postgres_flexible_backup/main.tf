@@ -64,9 +64,8 @@ resource "azurerm_postgresql_flexible_server" "example" {
   }
   # Define a custom maintenance window
   maintenance_window {
-    day_of_week  = 0 # 0 represents Sunday
-    start_hour   = 2 # 2 AM
-    start_minute = 0 # 00 minutes
+    day_of_week = 0
+    start_hour  = 2
   }
 }
 

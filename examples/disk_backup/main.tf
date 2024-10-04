@@ -50,7 +50,7 @@ resource "azurerm_managed_disk" "example" {
   location             = azurerm_resource_group.example.location
   name                 = "${module.naming.managed_disk.name_unique}-disk"
   resource_group_name  = azurerm_resource_group.example.name
-  storage_account_type = "Standard_LRS"
+  storage_account_type = "Premium_LRS"
   disk_size_gb         = 64
 }
 
