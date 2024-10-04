@@ -5,17 +5,12 @@ terraform {
       source  = "hashicorp/azurerm"
       version = ">= 3.110.0, < 5.0"
     }
-    # modtm = {
-    #   source  = "azure/modtm"
-    #   version = "~> 0.3"
-    # }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
     }
   }
 }
-
 
 provider "azurerm" {
   features {}
@@ -62,10 +57,11 @@ resource "azurerm_postgresql_flexible_server" "example" {
     mode                      = "ZoneRedundant" # Required, can be "ZoneRedundant" or "SameZone"
     standby_availability_zone = "1"             # Specify a different zone for the standby replica
   }
+
   # Define a custom maintenance window
   maintenance_window {
-    day_of_week  = 4
-    start_hour   = 15
+    day_of_week  = 4 # Thursday
+    start_hour   = 2 # 2 AM, adjusted to off-peak time
     start_minute = 34
   }
 }
