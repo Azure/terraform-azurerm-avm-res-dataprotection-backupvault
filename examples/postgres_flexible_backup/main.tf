@@ -3,7 +3,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 3.110.0, < 5.0"
+      version = ">= 4.0, < 5.0"
     }
     random = {
       source  = "hashicorp/random"
@@ -11,6 +11,7 @@ terraform {
     }
   }
 }
+
 
 provider "azurerm" {
   features {}
@@ -57,7 +58,6 @@ resource "azurerm_postgresql_flexible_server" "example" {
     mode                      = "ZoneRedundant" # Required, can be "ZoneRedundant" or "SameZone"
     standby_availability_zone = "1"             # Specify a different zone for the standby replica
   }
-
   # Define a custom maintenance window
   maintenance_window {
     day_of_week  = 4 # Thursday
