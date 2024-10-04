@@ -63,10 +63,7 @@ resource "azurerm_postgresql_flexible_server" "example" {
     standby_availability_zone = "1"             # Specify a different zone for the standby replica
   }
   # Define a custom maintenance window
-  maintenance_window {
-    day_of_week = 0
-    start_hour  = 2
-  }
+  maintenance_window {}
 }
 
 # Call PostgreSQL Flexible Backup Vault and Backup Policy
