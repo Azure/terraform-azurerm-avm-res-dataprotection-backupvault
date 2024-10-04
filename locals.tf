@@ -19,7 +19,4 @@ locals {
       }
     } : {}
   }
-  # Private endpoint application security group associations.
-  # We merge the nested maps from private endpoints and application security group associations into a single map.
-  role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
 }
