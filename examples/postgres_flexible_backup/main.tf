@@ -60,8 +60,8 @@ resource "azurerm_postgresql_flexible_server" "example" {
   }
   # Define a custom maintenance window
   maintenance_window {
-    day_of_week  = "Thursday" # Thursday
-    start_hour   = 2          # 2 AM, adjusted to off-peak time
+    day_of_week  = "4" # Thursday
+    start_hour   = 2   # 2 AM, adjusted to off-peak time
     start_minute = 34
   }
 }
