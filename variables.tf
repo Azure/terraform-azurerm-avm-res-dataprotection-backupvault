@@ -291,7 +291,6 @@ variable "role_assignments" {
     condition_version                      = optional(string, null)
     delegated_managed_identity_resource_id = optional(string, null)
     principal_type                         = optional(string, null)
-    scope                                  = string
   }))
   default     = {}
   description = <<DESCRIPTION
@@ -309,12 +308,6 @@ variable "role_assignments" {
   > Note: only set `skip_service_principal_aad_check` to true if you are assigning a role to a service principal.
   DESCRIPTION
   nullable    = false
-}
-
-variable "server_id" {
-  type        = string
-  default     = null
-  description = "The ID of the PostgreSQL Flexible Server to be backed up."
 }
 
 variable "snapshot_resource_group_name" {
