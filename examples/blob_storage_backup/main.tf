@@ -69,6 +69,7 @@ module "backup_vault" {
   operational_default_retention_duration = "P30D"
   identity_enabled                       = true
   enable_telemetry                       = true
+  diagnostic_settings                    = var.diagnostic_settings # Referencing the module root diagnostic settings
 
   # Inputs for backup policy and backup instance
   backup_policy_name        = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
@@ -82,9 +83,8 @@ module "backup_vault" {
     example_assignment = {
       principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Storage Account Backup Contributor"
-      description                = "Backup Contributor for Blob Storage" # Optional
-      # Scope is set to the Storage Account's ID
-      scope = azurerm_storage_account.example.id
+      description                = "Backup Contributor for Blob Storage"
+      scope                      = azurerm_storage_account.example.id
     }
   }
 
@@ -121,13 +121,13 @@ module "backup_vault" {
   ]
 }
 
-# Apply diagnostic settings to the Storage Account (skip workspace for simplicity)
-# Apply diagnostic settings to the Storage Account (with storage account ID)
+# Apply diagnostic settings to the Storage Account
 resource "azurerm_monitor_diagnostic_setting" "example" {
   name               = "${azurerm_storage_account.example.name}-diagnostics"
   target_resource_id = azurerm_storage_account.example.id
-  storage_account_id = azurerm_storage_account.example.id # Specify the storage account ID
+  storage_account_id = azurerm_storage_account.example.id # Use the Storage Account ID directly
 
+  # Diagnostic metrics
   metric {
     category = "Transaction"
     enabled  = true
@@ -137,4 +137,5 @@ resource "azurerm_monitor_diagnostic_setting" "example" {
     enabled  = true
   }
 }
+
 
