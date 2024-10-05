@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
-# Default example
+# Redundancy Scenarios Example
 
-This deploys the module in its simplest form.
+This deploys the Backup Vault module with different redundancy options, testing LocallyRedundant, GeoRedundant, and ZoneRedundant settings.
 
 ```hcl
 terraform {
@@ -52,17 +52,72 @@ resource "azurerm_resource_group" "example" {
 }
 
 # Call the Backup Vault Module
-module "backup_vault" {
+# module "backup_vault_geo_redundant" {
+#   source              = "../../" # Replace with correct module path
+#   location            = azurerm_resource_group.example.location
+#   name                = module.naming.recovery_services_vault.name_unique
+#   resource_group_name = azurerm_resource_group.example.name
+
+#   datastore_type      = "VaultStore"
+#   redundancy          = "GeoRedundant"
+#   cross_region_restore_enabled = true  # This only works when redundancy is GeoRedundant
+
+#   # Enable soft delete and set a custom retention duration
+#   soft_delete                 = "On"
+#   retention_duration_in_days  = 30
+
+#   enable_telemetry = true
+# }
+
+module "backup_vault_geo_redundant_no_cross_restore" {
   source              = "../../" # Replace with correct module path
   location            = azurerm_resource_group.example.location
   name                = module.naming.recovery_services_vault.name_unique
   resource_group_name = azurerm_resource_group.example.name
 
-  # Minimum required variables
-  datastore_type   = "VaultStore"
-  redundancy       = "GeoRedundant"
-  enable_telemetry = true # Enable telemetry (optional)
+  datastore_type               = "VaultStore"
+  redundancy                   = "GeoRedundant"
+  cross_region_restore_enabled = false # Explicitly set to false
+
+  # Enable soft delete and set a custom retention duration
+  soft_delete                = "On"
+  retention_duration_in_days = 30
+
+  enable_telemetry = true
 }
+
+# module "backup_vault_locally_redundant" {
+#   source              = "../../" # Replace with correct module path
+#   location            = azurerm_resource_group.example.location
+#   name                = module.naming.recovery_services_vault.name_unique
+#   resource_group_name = azurerm_resource_group.example.name
+
+#   datastore_type      = "VaultStore"
+#   redundancy          = "LocallyRedundant" # No cross-region restore applicable here
+
+#   # Enable soft delete and set a custom retention duration
+#   soft_delete                 = "On"
+#   retention_duration_in_days  = 45
+
+#   enable_telemetry = true
+# }
+
+# module "backup_vault_zone_redundant" {
+#   source              = "../../" # Replace with correct module path
+#   location            = azurerm_resource_group.example.location
+#   name                = module.naming.recovery_services_vault.name_unique
+#   resource_group_name = azurerm_resource_group.example.name
+
+#   datastore_type      = "VaultStore"
+#   redundancy          = "ZoneRedundant" # No cross-region restore applicable
+
+#   # Enable soft delete and set a custom retention duration
+#   soft_delete                 = "On"
+#   retention_duration_in_days  = 60
+
+#   enable_telemetry = true
+# }
+
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -100,7 +155,7 @@ No outputs.
 
 The following Modules are called:
 
-### <a name="module_backup_vault"></a> [backup\_vault](#module\_backup\_vault)
+### <a name="module_backup_vault_geo_redundant_no_cross_restore"></a> [backup\_vault\_geo\_redundant\_no\_cross\_restore](#module\_backup\_vault\_geo\_redundant\_no\_cross\_restore)
 
 Source: ../../
 
