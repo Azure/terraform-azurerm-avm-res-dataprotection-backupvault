@@ -1,3 +1,15 @@
+variable "diagnostic_settings" {
+  type = map(object({
+    name                       = optional(string, null)
+    log_categories             = optional(set(string), [])
+    metric_categories          = optional(set(string), ["AllMetrics"])
+    log_analytics_workspace_id = optional(string, null)
+    storage_account_id         = optional(string, null)
+  }))
+  default     = {}
+  description = "Diagnostic settings for resources"
+}
+
 variable "enable_telemetry" {
   type        = bool
   default     = true
@@ -6,10 +18,4 @@ This variable controls whether or not telemetry is enabled for the module.
 For more information see <https://aka.ms/avm/telemetryinfo>.
 If it is set to false, then no telemetry will be collected.
 DESCRIPTION
-}
-
-variable "subscription_id" {
-  type        = string
-  default     = "b4b418d1-7fb5-41a9-952d-ffbff78e61b6"
-  description = "Subscription ID to be used"
 }

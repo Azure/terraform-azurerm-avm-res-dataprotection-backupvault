@@ -148,14 +148,6 @@ Type: `bool`
 
 Default: `true`
 
-### <a name="input_tenant_id"></a> [tenant\_id](#input\_tenant\_id)
-
-Description: The tenant ID for the Azure Key Vault
-
-Type: `string`
-
-Default: `null`
-
 ## Outputs
 
 No outputs.

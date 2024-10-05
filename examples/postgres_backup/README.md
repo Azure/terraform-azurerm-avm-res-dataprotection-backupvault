@@ -84,9 +84,9 @@ module "backup_vault" {
   enable_telemetry           = true
 
   # Inputs for PostgreSQL backup policy and backup instance
-  backup_policy_name              = "${module.naming.postgresql_server.name_unique}-backup-policy"
-  postgresql_backup_instance_name = "${module.naming.postgresql_database.name_unique}-postgressql-instance"
-  postgresql_database_id          = azurerm_postgresql_database.example.id
+  backup_policy_name                       = "${module.naming.postgresql_server.name_unique}-backup-policy"
+  postgresql_flexible_backup_instance_name = "${module.naming.postgresql_database.name_unique}-postgresflex-instance" # Updated
+  postgresql_database_id                   = azurerm_postgresql_database.example.id
 
   role_assignments = {
     postgresql_Contributor = {
@@ -95,7 +95,6 @@ module "backup_vault" {
       scope                      = azurerm_postgresql_server.example.id
     }
   }
-
 
   backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
   retention_rules = [
@@ -107,6 +106,7 @@ module "backup_vault" {
     }
   ]
 }
+
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -147,14 +147,6 @@ If it is set to false, then no telemetry will be collected.
 Type: `bool`
 
 Default: `true`
-
-### <a name="input_tenant_id"></a> [tenant\_id](#input\_tenant\_id)
-
-Description: The tenant ID for the Azure Key Vault
-
-Type: `string`
-
-Default: `null`
 
 ## Outputs
 

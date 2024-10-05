@@ -5,10 +5,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = ">= 3.110.0, < 5.0"
     }
-    # modtm = {
-    #   source  = "azure/modtm"
-    #   version = "~> 0.3"
-    # }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
@@ -105,7 +101,7 @@ module "backup_vault" {
       }]
       life_cycle = [{
         data_store_type = "VaultStore"
-        duration        = "P30D" # Specify a valid retention duration here
+        duration        = "P30D"
       }]
     },
     {
@@ -117,8 +113,31 @@ module "backup_vault" {
       }]
       life_cycle = [{
         data_store_type = "VaultStore"
-        duration        = "P30D" # Specify a valid retention duration here
+        duration        = "P30D"
       }]
     }
   ]
+}
+
+# Apply simplified diagnostic settings to the Storage Account
+resource "azurerm_monitor_diagnostic_setting" "example" {
+  for_each = var.diagnostic_settings
+
+  name                       = each.value.name != null ? each.value.name : "${azurerm_storage_account.example.name}-diagnostics"
+  target_resource_id         = azurerm_storage_account.example.id
+  log_analytics_workspace_id = each.value.workspace_resource_id
+  storage_account_id         = each.value.storage_account_resource_id
+
+  dynamic "log" {
+    for_each = each.value.log_categories
+
+    content {
+      category = log.value
+      enabled  = true
+    }
+  }
+  metric {
+    category = metric.value
+    enabled  = true
+  }
 }

@@ -2,7 +2,7 @@
 resource "azurerm_data_protection_backup_instance_blob_storage" "blob_backup_instance" {
   count = var.blob_backup_instance_name != null ? 1 : 0
 
-  backup_policy_id                = try(azurerm_data_protection_backup_policy_blob_storage.this[0].id, null) # Use try to handle the case when it doesn't exist
+  backup_policy_id                = try(azurerm_data_protection_backup_policy_blob_storage.this[0].id, var.backup_policy_id)
   location                        = var.location
   name                            = var.blob_backup_instance_name
   storage_account_id              = var.storage_account_id

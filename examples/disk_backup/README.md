@@ -171,14 +171,6 @@ Type: `bool`
 
 Default: `true`
 
-### <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id)
-
-Description: Subscription ID to be used
-
-Type: `string`
-
-Default: `"b4b418d1-7fb5-41a9-952d-ffbff78e61b6"`
-
 ## Outputs
 
 No outputs.

@@ -11,10 +11,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = ">= 3.110.0, < 5.0"
     }
-    # modtm = {
-    #   source  = "azure/modtm"
-    #   version = "~> 0.3"
-    # }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
@@ -111,7 +107,7 @@ module "backup_vault" {
       }]
       life_cycle = [{
         data_store_type = "VaultStore"
-        duration        = "P30D" # Specify a valid retention duration here
+        duration        = "P30D"
       }]
     },
     {
@@ -123,10 +119,33 @@ module "backup_vault" {
       }]
       life_cycle = [{
         data_store_type = "VaultStore"
-        duration        = "P30D" # Specify a valid retention duration here
+        duration        = "P30D"
       }]
     }
   ]
+}
+
+# Apply simplified diagnostic settings to the Storage Account
+resource "azurerm_monitor_diagnostic_setting" "example" {
+  for_each = var.diagnostic_settings
+
+  name                       = each.value.name != null ? each.value.name : "${azurerm_storage_account.example.name}-diagnostics"
+  target_resource_id         = azurerm_storage_account.example.id
+  log_analytics_workspace_id = each.value.workspace_resource_id
+  storage_account_id         = each.value.storage_account_resource_id
+
+  dynamic "log" {
+    for_each = each.value.log_categories
+
+    content {
+      category = log.value
+      enabled  = true
+    }
+  }
+  metric {
+    category = metric.value
+    enabled  = true
+  }
 }
 ```
 
@@ -145,6 +164,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azurerm_monitor_diagnostic_setting.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
 - [azurerm_storage_container.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
@@ -159,6 +179,24 @@ No required inputs.
 
 The following input variables are optional (have default values):
 
+### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
+
+Description: Diagnostic settings for resources
+
+Type:
+
+```hcl
+map(object({
+    name                       = optional(string, null)
+    log_categories             = optional(set(string), [])
+    metric_categories          = optional(set(string), ["AllMetrics"])
+    log_analytics_workspace_id = optional(string, null)
+    storage_account_id         = optional(string, null)
+  }))
+```
+
+Default: `{}`
+
 ### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
 
 Description: This variable controls whether or not telemetry is enabled for the module.  
@@ -168,14 +206,6 @@ If it is set to false, then no telemetry will be collected.
 Type: `bool`
 
 Default: `true`
-
-### <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id)
-
-Description: Subscription ID to be used
-
-Type: `string`
-
-Default: `"b4b418d1-7fb5-41a9-952d-ffbff78e61b6"`
 
 ## Outputs
 
