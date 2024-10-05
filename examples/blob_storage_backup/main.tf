@@ -56,7 +56,7 @@ resource "azurerm_storage_container" "example" {
   container_access_type = "private"
 }
 
-# Module Call
+# Module Call for Backup Vault
 module "backup_vault" {
   source = "../../"
 
@@ -82,7 +82,9 @@ module "backup_vault" {
     example_assignment = {
       principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Storage Account Backup Contributor"
-      scope                      = azurerm_storage_account.example.id
+      description                = "Backup Contributor for Blob Storage" # Optional
+      # Scope is set to the Storage Account's ID
+      scope = azurerm_storage_account.example.id
     }
   }
 
@@ -119,25 +121,20 @@ module "backup_vault" {
   ]
 }
 
-# Apply simplified diagnostic settings to the Storage Account
+# Apply diagnostic settings to the Storage Account (skip workspace for simplicity)
+# Apply diagnostic settings to the Storage Account (with storage account ID)
 resource "azurerm_monitor_diagnostic_setting" "example" {
-  for_each = var.diagnostic_settings
+  name               = "${azurerm_storage_account.example.name}-diagnostics"
+  target_resource_id = azurerm_storage_account.example.id
+  storage_account_id = azurerm_storage_account.example.id # Specify the storage account ID
 
-  name                       = each.value.name != null ? each.value.name : "${azurerm_storage_account.example.name}-diagnostics"
-  target_resource_id         = azurerm_storage_account.example.id
-  log_analytics_workspace_id = each.value.workspace_resource_id
-  storage_account_id         = each.value.storage_account_resource_id
-
-  dynamic "log" {
-    for_each = each.value.log_categories
-
-    content {
-      category = log.value
-      enabled  = true
-    }
+  metric {
+    category = "Transaction"
+    enabled  = true
   }
   metric {
-    category = metric.value
+    category = "Capacity"
     enabled  = true
   }
 }
+

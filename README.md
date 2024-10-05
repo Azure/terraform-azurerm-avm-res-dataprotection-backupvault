@@ -378,6 +378,7 @@ map(object({
     condition_version                      = optional(string, null)
     delegated_managed_identity_resource_id = optional(string, null)
     principal_type                         = optional(string, null)
+    scope                                  = string
   }))
 ```
 
