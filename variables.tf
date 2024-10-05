@@ -310,6 +310,12 @@ variable "role_assignments" {
   nullable    = false
 }
 
+variable "server_id" {
+  type        = string
+  default     = null
+  description = "The ID of the PostgreSQL Flexible Server to be backed up."
+}
+
 variable "snapshot_resource_group_name" {
   type        = string
   default     = null

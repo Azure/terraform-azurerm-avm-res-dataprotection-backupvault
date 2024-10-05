@@ -383,6 +383,14 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_server_id"></a> [server\_id](#input\_server\_id)
+
+Description: The ID of the PostgreSQL Flexible Server to be backed up.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_snapshot_resource_group_name"></a> [snapshot\_resource\_group\_name](#input\_snapshot\_resource\_group\_name)
 
 Description: The name of the Resource Group where snapshots are stored.
