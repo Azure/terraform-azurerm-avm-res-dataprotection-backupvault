@@ -325,14 +325,6 @@ Type: `string`
 
 Default: `null`
 
-### <a name="input_postgresql_flexible_backup_instance_name"></a> [postgresql\_flexible\_backup\_instance\_name](#input\_postgresql\_flexible\_backup\_instance\_name)
-
-Description: Name of the PostgreSQL Flexible Backup instance.
-
-Type: `string`
-
-Default: `null`
-
 ### <a name="input_postgresql_key_vault_secret_id"></a> [postgresql\_key\_vault\_secret\_id](#input\_postgresql\_key\_vault\_secret\_id)
 
 Description: The ID of the key vault secret that stores the database credentials.
@@ -408,14 +400,6 @@ map(object({
 ```
 
 Default: `{}`
-
-### <a name="input_server_id"></a> [server\_id](#input\_server\_id)
-
-Description: The ID of the PostgreSQL Flexible Server to be backed up.
-
-Type: `string`
-
-Default: `null`
 
 ### <a name="input_snapshot_resource_group_name"></a> [snapshot\_resource\_group\_name](#input\_snapshot\_resource\_group\_name)
 

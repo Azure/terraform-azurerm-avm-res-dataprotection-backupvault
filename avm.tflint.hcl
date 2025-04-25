@@ -1,12 +1,12 @@
 plugin "terraform" {
   enabled = true
-  version = "0.5.0"
+  version = "0.10.0"
   source  = "github.com/terraform-linters/tflint-ruleset-terraform"
 }
 
 plugin "avm" {
   enabled     = true
-  version     = "0.11.1"
+  version     = "0.14.1"
   source      = "github.com/Azure/tflint-ruleset-avm"
   signing_key = <<-KEY
 -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -187,6 +187,10 @@ rule "tags" {
   enabled = true
 }
 
-rule "provider_modtm_version" {
+rule "provider_modtm_version_constraint" {
+  enabled = true
+}
+
+rule "valid_template_interpolation" {
   enabled = true
 }

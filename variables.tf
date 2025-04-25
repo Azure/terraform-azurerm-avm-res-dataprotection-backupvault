@@ -251,12 +251,6 @@ variable "operational_default_retention_duration" {
   description = "The duration of operational default retention rule in ISO 8601 format."
 }
 
-variable "postgresql_flexible_backup_instance_name" {
-  type        = string
-  default     = null
-  description = "Name of the PostgreSQL Flexible Backup instance."
-}
-
 variable "retention_duration_in_days" {
   type        = number
   default     = 14
@@ -319,12 +313,6 @@ variable "role_assignments" {
   > Note: only set `skip_service_principal_aad_check` to true if you are assigning a role to a service principal.
   DESCRIPTION
   nullable    = false
-}
-
-variable "server_id" {
-  type        = string
-  default     = null
-  description = "The ID of the PostgreSQL Flexible Server to be backed up."
 }
 
 variable "snapshot_resource_group_name" {
