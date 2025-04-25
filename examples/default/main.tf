@@ -1,14 +1,10 @@
 terraform {
-  required_version = "~> 1.9.3"
+  required_version = ">= 1.7.0"
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 3.110.0, < 5.0"
+      version = ">= 3.116.0, < 5.0.0"
     }
-    # modtm = {
-    #   source  = "azure/modtm"
-    #   version = "~> 0.3"
-    # }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
@@ -21,17 +17,6 @@ provider "azurerm" {
   features {}
 }
 
-# Randomly select an Azure region for the resource group
-module "regions" {
-  source  = "Azure/avm-utl-regions/azurerm"
-  version = "~> 0.1"
-}
-
-resource "random_integer" "region_index" {
-  max = length(module.regions.regions) - 1
-  min = 0
-}
-
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
@@ -41,7 +26,7 @@ module "naming" {
 
 # Create a Resource Group in the randomly selected region
 resource "azurerm_resource_group" "example" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "eastus"
   name     = module.naming.resource_group.name_unique
 }
 

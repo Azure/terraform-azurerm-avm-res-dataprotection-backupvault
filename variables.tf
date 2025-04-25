@@ -199,6 +199,17 @@ variable "identity_enabled" {
   description = "Whether to enable Managed Service Identity for the Backup Vault."
 }
 
+variable "immutability" {
+  type        = string
+  default     = "Disabled"
+  description = "Immutability state: Disabled, Locked, or Unlocked."
+
+  validation {
+    condition     = contains(["Disabled", "Locked", "Unlocked"], var.immutability)
+    error_message = "immutability must be one of: Disabled, Locked, Unlocked."
+  }
+}
+
 variable "lock" {
   type = object({
     kind = string

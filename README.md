@@ -248,6 +248,14 @@ Type: `bool`
 
 Default: `false`
 
+### <a name="input_immutability"></a> [immutability](#input\_immutability)
+
+Description: Immutability state: Disabled, Locked, or Unlocked.
+
+Type: `string`
+
+Default: `"Disabled"`
+
 ### <a name="input_lock"></a> [lock](#input\_lock)
 
 Description: Controls the Resource Lock configuration for this resource. The following properties can be specified:
