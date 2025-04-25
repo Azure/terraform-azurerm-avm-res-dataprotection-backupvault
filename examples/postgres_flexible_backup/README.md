@@ -87,7 +87,7 @@ module "backup_vault" {
   # Inputs for PostgreSQL Flexible backup policy and backup instance
   backup_policy_name                       = "${module.naming.postgresql_server.name_unique}-backup-policy"
   postgresql_flexible_backup_instance_name = "${module.naming.postgresql_server.name_unique}-postgresflex-instance"
-  server_id                                = azurerm_postgresql_flexible_server.example.id != "" ? azurerm_postgresql_flexible_server.example.id : null
+  postgresql_flexible_server_id            = azurerm_postgresql_flexible_server.example.id != "" ? azurerm_postgresql_flexible_server.example.id : null
 
   role_assignments = {
     postgresql_Contributor = {
