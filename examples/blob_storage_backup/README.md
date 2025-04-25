@@ -58,8 +58,8 @@ resource "azurerm_storage_account" "example" {
 # Create a Storage Container
 resource "azurerm_storage_container" "example" {
   name                  = "example-container"
-  storage_account_name  = azurerm_storage_account.example.name
   container_access_type = "private"
+  storage_account_name  = azurerm_storage_account.example.name
 }
 
 # Module Call for Backup Vault
@@ -175,25 +175,7 @@ No required inputs.
 
 ## Optional Inputs
 
-The following input variables are optional (have default values):
-
-### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
-
-Description: Diagnostic settings for resources
-
-Type:
-
-```hcl
-map(object({
-    name                       = optional(string, null)
-    log_categories             = optional(set(string), [])
-    metric_categories          = optional(set(string), ["AllMetrics"])
-    log_analytics_workspace_id = optional(string, null)
-    storage_account_id         = optional(string, null)
-  }))
-```
-
-Default: `{}`
+No optional inputs.
 
 ## Outputs
 

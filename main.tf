@@ -25,17 +25,26 @@ resource "azurerm_role_assignment" "this" {
 }
 
 resource "azurerm_data_protection_backup_vault" "this" {
-  datastore_type      = var.datastore_type
-  location            = var.location
-  name                = var.name
-  redundancy          = var.redundancy
-  resource_group_name = var.resource_group_name
-  # Conditionally apply cross_region_restore_enabled only when redundancy is GeoRedundant
+  datastore_type               = var.datastore_type
+  location                     = var.location
+  name                         = var.name
+  redundancy                   = var.redundancy
+  resource_group_name          = var.resource_group_name
   cross_region_restore_enabled = var.redundancy == "GeoRedundant" ? var.cross_region_restore_enabled : null
   retention_duration_in_days   = var.retention_duration_in_days
   soft_delete                  = var.soft_delete
   tags                         = var.tags
 
+  dynamic "customer_managed_key" {
+    for_each = var.customer_managed_key != null ? [var.customer_managed_key] : []
+
+    content {
+      key_name                  = customer_managed_key.value.key_name
+      key_vault_key_id          = customer_managed_key.value.key_vault_resource_id
+      key_version               = customer_managed_key.value.key_version
+      user_assigned_identity_id = customer_managed_key.value.user_assigned_identity != null ? customer_managed_key.value.user_assigned_identity.resource_id : null
+    }
+  }
   dynamic "identity" {
     for_each = var.identity_enabled ? [1] : []
 
