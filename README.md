@@ -56,9 +56,11 @@ The following resources are used by this module:
 - [azurerm_data_protection_backup_instance_blob_storage.blob_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_blob_storage) (resource)
 - [azurerm_data_protection_backup_instance_disk.disk_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_disk) (resource)
 - [azurerm_data_protection_backup_instance_postgresql.postgresql_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql) (resource)
+- [azurerm_data_protection_backup_instance_postgresql_flexible_server.postgresql_flexible_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql_flexible_server) (resource)
 - [azurerm_data_protection_backup_policy_blob_storage.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_blob_storage) (resource)
 - [azurerm_data_protection_backup_policy_disk.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_disk) (resource)
 - [azurerm_data_protection_backup_policy_postgresql.postgresql_backup_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql) (resource)
+- [azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql_flexible_server) (resource)
 - [azurerm_data_protection_backup_vault.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_vault) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
@@ -301,6 +303,28 @@ Type: `string`
 
 Default: `null`
 
+### <a name="input_pg_retention_rules"></a> [pg\_retention\_rules](#input\_pg\_retention\_rules)
+
+Description: List of retention rules for PostgreSQL flexible server backup policy.
+
+Type:
+
+```hcl
+list(object({
+    name                   = string
+    priority               = number
+    duration               = string
+    data_store_type        = optional(string, "VaultStore")
+    absolute_criteria      = optional(string)
+    days_of_week           = optional(list(string))
+    months_of_year         = optional(list(string))
+    scheduled_backup_times = optional(list(string))
+    weeks_of_month         = optional(list(string))
+  }))
+```
+
+Default: `[]`
+
 ### <a name="input_postgresql_backup_instance_name"></a> [postgresql\_backup\_instance\_name](#input\_postgresql\_backup\_instance\_name)
 
 Description: The name of the Backup Instance PostgreSQL.
@@ -317,9 +341,41 @@ Type: `string`
 
 Default: `null`
 
+### <a name="input_postgresql_backup_policy_name"></a> [postgresql\_backup\_policy\_name](#input\_postgresql\_backup\_policy\_name)
+
+Description: The name of the PostgreSQL Flexible Server Backup Policy.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_postgresql_database_id"></a> [postgresql\_database\_id](#input\_postgresql\_database\_id)
 
 Description: The ID of the source PostgreSQL database.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_postgresql_flexible_backup_instance_name"></a> [postgresql\_flexible\_backup\_instance\_name](#input\_postgresql\_flexible\_backup\_instance\_name)
+
+Description: The name of the PostgreSQL Flexible Server Backup Instance.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_postgresql_flexible_backup_policy_id"></a> [postgresql\_flexible\_backup\_policy\_id](#input\_postgresql\_flexible\_backup\_policy\_id)
+
+Description: The ID of the PostgreSQL Flexible Server Backup Policy to use. If not provided, the module will create a policy.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_postgresql_flexible_server_id"></a> [postgresql\_flexible\_server\_id](#input\_postgresql\_flexible\_server\_id)
+
+Description: The ID of the PostgreSQL Flexible Server to be backed up.
 
 Type: `string`
 
@@ -517,6 +573,14 @@ Description: The Principal ID for the Service Principal associated with the Iden
 ### <a name="output_identity_tenant_id"></a> [identity\_tenant\_id](#output\_identity\_tenant\_id)
 
 Description: The Tenant ID for the Service Principal associated with the Identity of this Backup Vault.
+
+### <a name="output_postgresql_flexible_backup_instance_id"></a> [postgresql\_flexible\_backup\_instance\_id](#output\_postgresql\_flexible\_backup\_instance\_id)
+
+Description: The ID of the created PostgreSQL Flexible Server Backup Instance.
+
+### <a name="output_postgresql_flexible_backup_policy_id"></a> [postgresql\_flexible\_backup\_policy\_id](#output\_postgresql\_flexible\_backup\_policy\_id)
+
+Description: The ID of the created PostgreSQL Flexible Server Backup Policy.
 
 ### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
 

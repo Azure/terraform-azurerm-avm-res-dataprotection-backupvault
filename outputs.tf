@@ -28,6 +28,16 @@ output "identity_tenant_id" {
   value       = try(azurerm_data_protection_backup_vault.this.identity[0].tenant_id, null)
 }
 
+output "postgresql_flexible_backup_instance_id" {
+  description = "The ID of the created PostgreSQL Flexible Server Backup Instance."
+  value       = try(azurerm_data_protection_backup_instance_postgresql_flexible_server.postgresql_flexible_backup_instance[0].id, null)
+}
+
+output "postgresql_flexible_backup_policy_id" {
+  description = "The ID of the created PostgreSQL Flexible Server Backup Policy."
+  value       = try(azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy[0].id, null)
+}
+
 output "resource_id" {
   description = "The ID of the Backup Vault"
   value       = azurerm_data_protection_backup_vault.this.id
