@@ -69,7 +69,6 @@ module "backup_vault" {
   operational_default_retention_duration = "P30D"
   identity_enabled                       = true
   enable_telemetry                       = true
-  diagnostic_settings                    = var.diagnostic_settings # Referencing the module root diagnostic settings
 
   # Inputs for backup policy and backup instance
   backup_policy_name        = "${module.naming.recovery_services_vault.name_unique}-backup-policy"

@@ -44,9 +44,10 @@ module "backup_vault" {
   resource_group_name = azurerm_resource_group.example.name
 
   # Minimum required variables
-  datastore_type   = "VaultStore"
-  redundancy       = "GeoRedundant"
-  enable_telemetry = true # Enable telemetry (optional)
+  datastore_type      = "VaultStore"
+  redundancy          = "GeoRedundant"
+  enable_telemetry    = true # Enable telemetry (optional)
+  diagnostic_settings = {}
 }
 ```
 
