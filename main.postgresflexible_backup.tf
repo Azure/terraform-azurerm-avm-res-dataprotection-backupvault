@@ -46,11 +46,12 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "pos
 resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "postgresql_flexible_backup_instance" {
   count = var.postgresql_flexible_backup_instance_name != null ? 1 : 0
 
-  backup_policy_id = azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy[0].id
-  location         = var.location
   name             = var.postgresql_flexible_backup_instance_name
-  server_id        = var.postgresql_flexible_server_id
+  location         = var.location
   vault_id         = azurerm_data_protection_backup_vault.this.id
+  server_id        = var.postgresql_flexible_server_id
+  # Change this line to use the variable properly
+  backup_policy_id = try(azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy[0].id, var.postgresql_flexible_backup_policy_id)
 
   timeouts {
     create = var.timeout_create
