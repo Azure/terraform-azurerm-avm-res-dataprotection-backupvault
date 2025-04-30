@@ -46,8 +46,7 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "pos
 resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "postgresql_flexible_backup_instance" {
   count = var.postgresql_flexible_backup_instance_name != null ? 1 : 0
 
-  # Change this line to use the variable properly
-  backup_policy_id = try(azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy[0].id, var.postgresql_flexible_backup_policy_id)
+  backup_policy_id = var.postgresql_flexible_backup_policy_id != null ? var.postgresql_flexible_backup_policy_id : try(azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy[0].id, null)
   location         = var.location
   name             = var.postgresql_flexible_backup_instance_name
   server_id        = var.postgresql_flexible_server_id
@@ -59,4 +58,8 @@ resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "p
     read   = var.timeout_read
     update = var.timeout_update
   }
+
+  depends_on = [
+    azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy,
+  ]
 }

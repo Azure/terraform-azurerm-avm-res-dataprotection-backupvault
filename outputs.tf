@@ -28,6 +28,12 @@ output "identity_tenant_id" {
   value       = try(azurerm_data_protection_backup_vault.this.identity[0].tenant_id, null)
 }
 
+output "lock_id" {
+  description = "The resource ID of the management lock (if created)"
+  # if you used count = var.lock != null ? 1 : 0 on your lock:
+  value = try(azurerm_management_lock.this[0].id, "")
+}
+
 output "postgresql_flexible_backup_instance_id" {
   description = "The ID of the created PostgreSQL Flexible Server Backup Instance."
   value       = try(azurerm_data_protection_backup_instance_postgresql_flexible_server.postgresql_flexible_backup_instance[0].id, null)
@@ -40,5 +46,10 @@ output "postgresql_flexible_backup_policy_id" {
 
 output "resource_id" {
   description = "The ID of the Backup Vault"
+  value       = azurerm_data_protection_backup_vault.this.id
+}
+
+output "vault_id" {
+  description = "The resource ID of the Backup Vault"
   value       = azurerm_data_protection_backup_vault.this.id
 }

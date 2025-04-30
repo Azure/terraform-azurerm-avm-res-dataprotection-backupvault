@@ -1,5 +1,4 @@
 # Required AVM resources interfaces
-
 resource "azurerm_management_lock" "this" {
   count = var.lock != null ? 1 : 0
 
@@ -7,15 +6,18 @@ resource "azurerm_management_lock" "this" {
   name       = coalesce(var.lock.name, "lock-${var.lock.kind}")
   scope      = azurerm_data_protection_backup_vault.this.id
   notes      = var.lock.kind == "CanNotDelete" ? "Cannot delete the resource or its child resources." : "Cannot delete or modify the resource or its child resources."
+
+  lifecycle {
+    create_before_destroy = false
+  }
 }
 
 # Role assignment for the backup vault with managed identity
 resource "azurerm_role_assignment" "this" {
   for_each = var.role_assignments
 
-  principal_id = each.value.principal_id != null ? each.value.principal_id : azurerm_data_protection_backup_vault.this.identity[0].principal_id
-  # Use the scope passed in as part of each role assignment
-  scope                                  = azurerm_data_protection_backup_vault.this.id
+  principal_id                           = each.value.principal_id != null ? each.value.principal_id : azurerm_data_protection_backup_vault.this.identity[0].principal_id
+  scope                                  = each.value.scope != null ? each.value.scope : azurerm_data_protection_backup_vault.this.id
   condition                              = each.value.condition != null ? each.value.condition : null
   condition_version                      = each.value.condition != null ? each.value.condition_version : null
   delegated_managed_identity_resource_id = each.value.delegated_managed_identity_resource_id
@@ -77,5 +79,8 @@ resource "azurerm_data_protection_backup_vault" "this" {
       type = "SystemAssigned"
     }
   }
-}
 
+  lifecycle {
+    create_before_destroy = true
+  }
+}

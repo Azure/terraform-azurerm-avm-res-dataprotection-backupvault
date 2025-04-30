@@ -33,16 +33,27 @@ resource "random_integer" "region_index" {
   min = 0
 }
 
+# Generate a secure password for PostgreSQL
+resource "random_password" "postgres_password" {
+  length           = 16
+  min_lower        = 2
+  min_numeric      = 2
+  min_special      = 2
+  min_upper        = 2
+  override_special = "!@#$%&*()-_=+[]{}<>:?"
+  special          = true
+}
+
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["disk"]
+  suffix  = ["postgres"]
 }
 
 # Create a Resource Group in the randomly selected region
 resource "azurerm_resource_group" "example" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "centralus"
   name     = module.naming.resource_group.name_unique
 }
 
@@ -52,17 +63,12 @@ resource "azurerm_postgresql_flexible_server" "example" {
   name                   = module.naming.postgresql_server.name_unique
   resource_group_name    = azurerm_resource_group.example.name
   administrator_login    = "psqladmin"
-  administrator_password = "H@Sh1CoR3!"
+  administrator_password = random_password.postgres_password.result
   sku_name               = "GP_Standard_D4s_v3"
   storage_mb             = 32768
   version                = "12"
   zone                   = "2"
 
-  # High Availability configuration with zone redundancy
-  high_availability {
-    mode                      = "ZoneRedundant" # Required, can be "ZoneRedundant" or "SameZone"
-    standby_availability_zone = "1"             # Specify a different zone for the standby replica
-  }
   # Define a custom maintenance window
   maintenance_window {
     day_of_week  = "4" # Thursday
@@ -90,10 +96,17 @@ module "backup_vault" {
   postgresql_flexible_server_id            = azurerm_postgresql_flexible_server.example.id != "" ? azurerm_postgresql_flexible_server.example.id : null
 
   role_assignments = {
-    postgresql_Contributor = {
+    postgresql_contributor = {
       principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Contributor"
       scope                      = azurerm_postgresql_flexible_server.example.id
+      description                = "Allow backup vault identity to perform backup operations on PostgreSQL Flexible server"
+    }
+    resource_group_reader = {
+      principal_id               = module.backup_vault.identity_principal_id
+      role_definition_id_or_name = "Reader"
+      scope                      = azurerm_resource_group.example.id
+      description                = "Allow backup vault identity to read resource group information"
     }
   }
 
@@ -127,6 +140,7 @@ The following resources are used by this module:
 - [azurerm_postgresql_flexible_server.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/postgresql_flexible_server) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
+- [random_password.postgres_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) (resource)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs

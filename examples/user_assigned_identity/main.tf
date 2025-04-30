@@ -49,7 +49,7 @@ resource "azurerm_user_assigned_identity" "example" {
 
 # Call the Backup Vault Module and assign the User-Assigned Managed Identity
 module "backup_vault" {
-  source              = "../../" # Replace with correct module path
+  source              = "../../"
   location            = azurerm_resource_group.example.location
   name                = module.naming.recovery_services_vault.name_unique
   resource_group_name = azurerm_resource_group.example.name
@@ -64,11 +64,14 @@ module "backup_vault" {
     system_assigned            = false
     user_assigned_resource_ids = [azurerm_user_assigned_identity.example.id]
   }
-}
 
-# Assign Role for the Managed Identity
-resource "azurerm_role_assignment" "this" {
-  principal_id         = azurerm_user_assigned_identity.example.principal_id
-  scope                = azurerm_resource_group.example.id
-  role_definition_name = "Contributor"
+  # Role assignments
+  role_assignments = {
+    contributor_role = {
+      principal_id               = azurerm_user_assigned_identity.example.principal_id
+      role_definition_id_or_name = "Backup Contributor"
+      scope                      = azurerm_resource_group.example.id
+      description                = "Allows the user-assigned identity to manage resources in the resource group"
+    }
+  }
 }

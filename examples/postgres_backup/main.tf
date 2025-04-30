@@ -28,6 +28,17 @@ module "naming" {
   suffix  = ["postgres"]
 }
 
+# Generate a secure password for PostgreSQL
+resource "random_password" "postgres_password" {
+  length           = 16
+  min_lower        = 2
+  min_numeric      = 2
+  min_special      = 2
+  min_upper        = 2
+  override_special = "!@#$%&*()-_=+[]{}<>:?"
+  special          = true
+}
+
 # Create a Resource Group in the randomly selected region
 resource "azurerm_resource_group" "example" {
   location = "Central US"
@@ -43,7 +54,7 @@ resource "azurerm_postgresql_server" "example" {
   ssl_enforcement_enabled          = true
   version                          = "11"
   administrator_login              = "psqladmin"
-  administrator_login_password     = "H@Sh1CoR3!"
+  administrator_login_password     = random_password.postgres_password.result
   auto_grow_enabled                = true
   backup_retention_days            = 7
   geo_redundant_backup_enabled     = true
@@ -74,9 +85,9 @@ module "backup_vault" {
   enable_telemetry           = true
 
   # Inputs for PostgreSQL backup policy and backup instance
-  backup_policy_name                       = "${module.naming.postgresql_server.name_unique}-backup-policy"
-  postgresql_flexible_backup_instance_name = "${module.naming.postgresql_database.name_unique}-postgresflex-instance" # Updated
-  postgresql_database_id                   = azurerm_postgresql_database.example.id
+  backup_policy_name              = "${module.naming.postgresql_server.name_unique}-backup-policy"
+  postgresql_backup_instance_name = "${module.naming.postgresql_database.name_unique}-instance"
+  postgresql_database_id          = azurerm_postgresql_database.example.id
 
   role_assignments = {
     postgresql_Contributor = {

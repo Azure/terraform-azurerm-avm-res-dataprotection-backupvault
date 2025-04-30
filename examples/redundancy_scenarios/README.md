@@ -36,83 +36,78 @@ resource "random_integer" "region_index" {
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["test"]
+  suffix  = ["redundancy"]
 
 }
 
 # Create a Resource Group in the randomly selected region
 resource "azurerm_resource_group" "example" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = local.test_regions.primary_region
   name     = module.naming.resource_group.name_unique
 }
 
-# Call the Backup Vault Module
-# module "backup_vault_geo_redundant" {
-#   source              = "../../" # Replace with correct module path
-#   location            = azurerm_resource_group.example.location
-#   name                = module.naming.recovery_services_vault.name_unique
-#   resource_group_name = azurerm_resource_group.example.name
-
-#   datastore_type      = "VaultStore"
-#   redundancy          = "GeoRedundant"
-#   cross_region_restore_enabled = true  # This only works when redundancy is GeoRedundant
-
-#   # Enable soft delete and set a custom retention duration
-#   soft_delete                 = "On"
-#   retention_duration_in_days  = 30
-
-#   enable_telemetry = true
-# }
-
-module "backup_vault_geo_redundant_no_cross_restore" {
-  source              = "../../" # Replace with correct module path
-  location            = azurerm_resource_group.example.location
-  name                = module.naming.recovery_services_vault.name_unique
-  resource_group_name = azurerm_resource_group.example.name
-
+# Geo-redundant with cross-region restore enabled
+module "backup_vault_geo_redundant_with_cross_restore" {
+  source                       = "../../"
+  location                     = local.test_regions.primary_region
+  name                         = "${module.naming.recovery_services_vault.name_unique}-geo-cross"
+  resource_group_name          = azurerm_resource_group.example.name
   datastore_type               = "VaultStore"
   redundancy                   = "GeoRedundant"
-  cross_region_restore_enabled = false # Explicitly set to false
-
-  # Enable soft delete and set a custom retention duration
-  soft_delete                = "On"
-  retention_duration_in_days = 30
-
-  enable_telemetry = true
+  cross_region_restore_enabled = true # Only works with GeoRedundant
+  soft_delete                  = "On"
+  retention_duration_in_days   = 30
+  enable_telemetry             = true
 }
 
-# module "backup_vault_locally_redundant" {
-#   source              = "../../" # Replace with correct module path
-#   location            = azurerm_resource_group.example.location
-#   name                = module.naming.recovery_services_vault.name_unique
-#   resource_group_name = azurerm_resource_group.example.name
+# Geo-redundant without cross-region restore
+module "backup_vault_geo_redundant_no_cross_restore" {
+  source                       = "../../"
+  location                     = local.test_regions.primary_region
+  name                         = "${module.naming.recovery_services_vault.name_unique}-geo-no-cross"
+  resource_group_name          = azurerm_resource_group.example.name
+  datastore_type               = "VaultStore"
+  redundancy                   = "GeoRedundant"
+  cross_region_restore_enabled = false
+  soft_delete                  = "On"
+  retention_duration_in_days   = 30
+  enable_telemetry             = true
+}
 
-#   datastore_type      = "VaultStore"
-#   redundancy          = "LocallyRedundant" # No cross-region restore applicable here
+# Locally redundant
+module "backup_vault_locally_redundant" {
+  source                     = "../../"
+  location                   = local.test_regions.primary_region
+  name                       = "${module.naming.recovery_services_vault.name_unique}-local"
+  resource_group_name        = azurerm_resource_group.example.name
+  datastore_type             = "VaultStore"
+  redundancy                 = "LocallyRedundant"
+  soft_delete                = "On"
+  retention_duration_in_days = 45
+  enable_telemetry           = true
+}
 
-#   # Enable soft delete and set a custom retention duration
-#   soft_delete                 = "On"
-#   retention_duration_in_days  = 45
+# Zone redundant (if available in the region)
+module "backup_vault_zone_redundant" {
+  source                     = "../../"
+  location                   = local.test_regions.primary_region
+  name                       = "${module.naming.recovery_services_vault.name_unique}-zone"
+  resource_group_name        = azurerm_resource_group.example.name
+  datastore_type             = "VaultStore"
+  redundancy                 = "ZoneRedundant"
+  soft_delete                = "On"
+  retention_duration_in_days = 60
+  enable_telemetry           = true
+}
 
-#   enable_telemetry = true
-# }
-
-# module "backup_vault_zone_redundant" {
-#   source              = "../../" # Replace with correct module path
-#   location            = azurerm_resource_group.example.location
-#   name                = module.naming.recovery_services_vault.name_unique
-#   resource_group_name = azurerm_resource_group.example.name
-
-#   datastore_type      = "VaultStore"
-#   redundancy          = "ZoneRedundant" # No cross-region restore applicable
-
-#   # Enable soft delete and set a custom retention duration
-#   soft_delete                 = "On"
-#   retention_duration_in_days  = 60
-
-#   enable_telemetry = true
-# }
-
+# Define regions for redundancy options
+locals {
+  test_regions = {
+    primary_region  = "eastus"  # Primary region with all redundancy options
+    paired_region   = "westus"  # Paired region for geo-redundant testing
+    fallback_region = "eastus2" # Fallback if primary isn't available
+  }
+}
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -151,6 +146,24 @@ No outputs.
 The following Modules are called:
 
 ### <a name="module_backup_vault_geo_redundant_no_cross_restore"></a> [backup\_vault\_geo\_redundant\_no\_cross\_restore](#module\_backup\_vault\_geo\_redundant\_no\_cross\_restore)
+
+Source: ../../
+
+Version:
+
+### <a name="module_backup_vault_geo_redundant_with_cross_restore"></a> [backup\_vault\_geo\_redundant\_with\_cross\_restore](#module\_backup\_vault\_geo\_redundant\_with\_cross\_restore)
+
+Source: ../../
+
+Version:
+
+### <a name="module_backup_vault_locally_redundant"></a> [backup\_vault\_locally\_redundant](#module\_backup\_vault\_locally\_redundant)
+
+Source: ../../
+
+Version:
+
+### <a name="module_backup_vault_zone_redundant"></a> [backup\_vault\_zone\_redundant](#module\_backup\_vault\_zone\_redundant)
 
 Source: ../../
 

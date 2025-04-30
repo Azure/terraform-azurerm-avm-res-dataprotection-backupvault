@@ -17,14 +17,17 @@ resource "azurerm_data_protection_backup_instance_blob_storage" "blob_backup_ins
   }
 
   depends_on = [
+    azurerm_management_lock.this,
     azurerm_role_assignment.this,
     azurerm_data_protection_backup_policy_blob_storage.this
   ]
+
+  lifecycle {
+    create_before_destroy = false
+    replace_triggered_by  = [azurerm_role_assignment.this]
+  }
 }
 
-
-
-# Backup Policy for Blob Storage
 resource "azurerm_data_protection_backup_policy_blob_storage" "this" {
   count = var.blob_backup_instance_name != null ? 1 : 0
 
@@ -58,7 +61,11 @@ resource "azurerm_data_protection_backup_policy_blob_storage" "this" {
       }
       # Life cycle block inside retention_rule
       dynamic "life_cycle" {
-        for_each = retention_rule.value.life_cycle
+        # If life_cycle is present in the retention_rule, use it; otherwise, create a default one
+        for_each = length(lookup(retention_rule.value, "life_cycle", [])) > 0 ? retention_rule.value.life_cycle : [{
+          data_store_type = "VaultStore"
+          duration        = retention_rule.value.duration
+        }]
 
         content {
           data_store_type = life_cycle.value.data_store_type

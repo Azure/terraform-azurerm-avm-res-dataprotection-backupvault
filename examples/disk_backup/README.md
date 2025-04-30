@@ -15,14 +15,26 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.5"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.9"
+    }
   }
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+    key_vault {
+      purge_soft_delete_on_destroy    = true
+      recover_soft_deleted_key_vaults = true
+    }
+  }
 }
 
-# Randomly select an Azure region for the resource group
+# Random region selection
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "~> 0.1"
@@ -37,16 +49,31 @@ resource "random_integer" "region_index" {
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["disk"]
+  prefix  = ["avm"]
+  suffix  = ["demo"]
 }
 
-# Create a Resource Group in the randomly selected region
+# Resource Group
 resource "azurerm_resource_group" "example" {
   location = module.regions.regions[random_integer.region_index.result].name
   name     = module.naming.resource_group.name_unique
+  tags = {
+    Environment = "Demo"
+    Deployment  = "Terraform"
+    Service     = "Data Protection"
+  }
 }
 
-# Create a Managed Disk
+# Log Analytics Workspace
+resource "azurerm_log_analytics_workspace" "example" {
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.log_analytics_workspace.name_unique}-law"
+  resource_group_name = azurerm_resource_group.example.name
+  retention_in_days   = 30
+  sku                 = "PerGB2018"
+}
+
+# Managed Disk
 resource "azurerm_managed_disk" "example" {
   create_option        = "Empty"
   location             = azurerm_resource_group.example.location
@@ -54,78 +81,98 @@ resource "azurerm_managed_disk" "example" {
   resource_group_name  = azurerm_resource_group.example.name
   storage_account_type = "Premium_LRS"
   disk_size_gb         = 64
+  tags = {
+    Environment = "Demo"
+    Purpose     = "Disk Backup"
+  }
 }
 
-# Module Call for Backup Vault and Disk Backup
+# Snapshot Resource Group
+resource "azurerm_resource_group" "snapshots" {
+  location = azurerm_resource_group.example.location
+  name     = "${module.naming.resource_group.name_unique}-snapshots"
+  tags = {
+    Environment = "Demo"
+    Purpose     = "Disk Snapshots"
+  }
+}
+
+# Backup Vault Module
 module "backup_vault" {
   source = "../../"
 
-  location                               = azurerm_resource_group.example.location
-  name                                   = "${module.naming.recovery_services_vault.name_unique}-vault"
-  resource_group_name                    = azurerm_resource_group.example.name
-  datastore_type                         = "VaultStore"
-  redundancy                             = "LocallyRedundant"
+  name                = "${module.naming.recovery_services_vault.name_unique}-vault"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  datastore_type      = "VaultStore"
+  redundancy          = "LocallyRedundant"
+
+  default_retention_duration             = "P30D"
   vault_default_retention_duration       = "P90D"
   operational_default_retention_duration = "P30D"
-  default_retention_duration             = "P4M"
-  identity_enabled                       = true
-  enable_telemetry                       = true
+  retention_duration_in_days             = 14
 
-  # Inputs for backup policy and backup instance
-  backup_policy_name           = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
+  immutability     = "Disabled"
+  soft_delete      = "Off"
+  identity_enabled = true
+
+  lock = null
+
+  diagnostic_settings = {
+    diag_to_law = {
+      name                  = "diag-law"
+      log_categories        = []
+      log_groups            = ["allLogs"]
+      metric_categories     = ["Health"]
+      workspace_resource_id = azurerm_log_analytics_workspace.example.id
+    }
+  }
+  backup_policy_name              = "${module.naming.recovery_services_vault.name_unique}-disk-policy"
+  backup_repeating_time_intervals = ["R/2025-01-01T00:00:00+00:00/P1D"]
+
   disk_backup_instance_name    = "${module.naming.recovery_services_vault.name_unique}-disk-instance"
   disk_id                      = azurerm_managed_disk.example.id
-  snapshot_resource_group_name = azurerm_resource_group.example.name
-  backup_policy_id             = module.backup_vault.backup_policy_id
+  snapshot_resource_group_name = azurerm_resource_group.snapshots.name
 
   role_assignments = {
-    # Assign Disk Snapshot Contributor role to the Snapshot Resource Group
-    snapshot_contributor = {
-      principal_id               = module.backup_vault.identity_principal_id
-      role_definition_id_or_name = "Disk Snapshot Contributor"
-      scope                      = azurerm_resource_group.example.id # Snapshot Resource Group scope
-    }
-
-    # Assign Disk Backup Reader role to the Disk
-    backup_reader = {
+    disk_backup_reader = {
       principal_id               = module.backup_vault.identity_principal_id
       role_definition_id_or_name = "Disk Backup Reader"
-      scope                      = azurerm_managed_disk.example.id # Disk resource scope
+      scope                      = azurerm_managed_disk.example.id
+    }
+    disk_snapshot_contributor = {
+      principal_id               = module.backup_vault.identity_principal_id
+      role_definition_id_or_name = "Disk Snapshot Contributor"
+      scope                      = azurerm_resource_group.snapshots.id
     }
   }
 
-
-  # Valid repeating intervals for backup
-  backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
-  time_zone                       = "Central Standard Time"
-
-  # Define the retention rules list here
   retention_rules = [
     {
       name     = "Daily"
-      duration = "P7D"
       priority = 25
+      duration = "P7D"
       criteria = [{
         absolute_criteria = "FirstOfDay"
-      }]
-      life_cycle = [{
-        data_store_type = "VaultStore"
-        duration        = "P30D" # Specify a valid retention duration here
       }]
     },
     {
       name     = "Weekly"
-      duration = "P7D"
       priority = 20
+      duration = "P30D"
       criteria = [{
         absolute_criteria = "FirstOfWeek"
       }]
-      life_cycle = [{
-        data_store_type = "VaultStore"
-        duration        = "P30D" # Specify a valid retention duration here
-      }]
     }
   ]
+
+  tags = {
+    Environment = "Demo"
+    Service     = "Data Protection"
+    CreatedBy   = "Terraform"
+  }
+
+  enable_telemetry = true
 }
 ```
 
@@ -140,12 +187,16 @@ The following requirements are needed by this module:
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
 
+- <a name="requirement_time"></a> [time](#requirement\_time) (~> 0.9)
+
 ## Resources
 
 The following resources are used by this module:
 
+- [azurerm_log_analytics_workspace.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
 - [azurerm_managed_disk.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/managed_disk) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_resource_group.snapshots](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
