@@ -64,11 +64,18 @@ resource "azurerm_postgresql_flexible_server" "example" {
   resource_group_name    = azurerm_resource_group.example.name
   administrator_login    = "psqladmin"
   administrator_password = random_password.postgres_password.result
-  sku_name               = "GP_Standard_D4s_v3"
-  storage_mb             = 32768
-  version                = "12"
-  zone                   = "2"
+  # Add geo-redundant backup for disaster recovery
+  geo_redundant_backup_enabled = true
+  sku_name                     = "GP_Standard_D4s_v3"
+  storage_mb                   = 32768
+  version                      = "12"
+  zone                         = "1"
 
+  # Configure high availability with zone redundancy
+  high_availability {
+    mode                      = "ZoneRedundant"
+    standby_availability_zone = "2"
+  }
   # Define a custom maintenance window
   maintenance_window {
     day_of_week  = "4" # Thursday
