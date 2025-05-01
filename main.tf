@@ -17,7 +17,7 @@ resource "azurerm_role_assignment" "this" {
   for_each = var.role_assignments
 
   principal_id                           = each.value.principal_id != null ? each.value.principal_id : azurerm_data_protection_backup_vault.this.identity[0].principal_id
-  scope                                  = azurerm_data_protection_backup_vault.this.id
+  scope                                  = each.value.scope != null ? each.value.scope : azurerm_data_protection_backup_vault.this.id
   condition                              = each.value.condition != null ? each.value.condition : null
   condition_version                      = each.value.condition != null ? each.value.condition_version : null
   delegated_managed_identity_resource_id = each.value.delegated_managed_identity_resource_id

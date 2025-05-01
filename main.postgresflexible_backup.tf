@@ -61,5 +61,6 @@ resource "azurerm_data_protection_backup_instance_postgresql_flexible_server" "p
 
   depends_on = [
     azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy,
+    azurerm_role_assignment.this
   ]
 }

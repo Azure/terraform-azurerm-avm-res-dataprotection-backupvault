@@ -5,10 +5,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = ">= 3.116.0, < 5.0.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.5"
-    }
   }
 }
 
@@ -25,15 +21,15 @@ provider "azurerm" {
 }
 
 # Random region selection
-module "regions" {
-  source  = "Azure/avm-utl-regions/azurerm"
-  version = "~> 0.1"
-}
+# module "regions" {
+#   source  = "Azure/avm-utl-regions/azurerm"
+#   version = "~> 0.1"
+# }
 
-resource "random_integer" "region_index" {
-  max = length(module.regions.regions) - 1
-  min = 0
-}
+# resource "random_integer" "region_index" {
+#   max = length(module.regions.regions) - 1
+#   min = 0
+# }
 
 # Naming module
 module "naming" {
@@ -45,7 +41,7 @@ module "naming" {
 
 # Resource Group
 resource "azurerm_resource_group" "example" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "centralus"
   name     = module.naming.resource_group.name_unique
   tags = {
     Environment = "Demo"
