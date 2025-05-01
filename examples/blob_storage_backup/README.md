@@ -62,17 +62,6 @@ resource "azurerm_storage_container" "example" {
   storage_account_id    = azurerm_storage_account.example.id
 }
 
-resource "azurerm_role_assignment" "storage_backup" {
-  principal_id         = module.backup_vault.identity_principal_id
-  scope                = azurerm_storage_account.example.id
-  role_definition_name = "Storage Account Backup Contributor"
-
-  # Add this to ensure role assignments fully propagate
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
 # Module Call for Backup Vault
 module "backup_vault" {
   source = "../../"
@@ -174,7 +163,6 @@ The following resources are used by this module:
 
 - [azurerm_monitor_diagnostic_setting.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
-- [azurerm_role_assignment.storage_backup](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
 - [azurerm_storage_container.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)

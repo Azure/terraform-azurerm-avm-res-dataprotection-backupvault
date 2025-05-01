@@ -56,17 +56,6 @@ resource "azurerm_storage_container" "example" {
   storage_account_id    = azurerm_storage_account.example.id
 }
 
-resource "azurerm_role_assignment" "storage_backup" {
-  principal_id         = module.backup_vault.identity_principal_id
-  scope                = azurerm_storage_account.example.id
-  role_definition_name = "Storage Account Backup Contributor"
-
-  # Add this to ensure role assignments fully propagate
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
 # Module Call for Backup Vault
 module "backup_vault" {
   source = "../../"
