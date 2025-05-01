@@ -45,14 +45,17 @@ resource "azurerm_kubernetes_cluster" "example" {
   default_node_pool {
     name                        = "default"
     vm_size                     = "Standard_D4s_v3"
-    node_count                  = 2
+    max_count                   = 9
+    min_count                   = 3
+    node_count                  = 3
     os_disk_type                = "Managed"
     temporary_name_for_rotation = "tempnodepool"
+    zones                       = ["1", "2", "3"]
 
     upgrade_settings {
-      max_surge                     = "10%"
-      drain_timeout_in_minutes      = 0
-      node_soak_duration_in_minutes = 0
+      max_surge                     = "33%"
+      drain_timeout_in_minutes      = 15
+      node_soak_duration_in_minutes = 15
     }
   }
   identity {
