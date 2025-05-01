@@ -43,6 +43,8 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.7.0)
 
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
+
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.116.0, < 5.0.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
@@ -53,15 +55,19 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azapi_resource.vault_resource_guard_association](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) (resource)
 - [azurerm_data_protection_backup_instance_blob_storage.blob_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_blob_storage) (resource)
 - [azurerm_data_protection_backup_instance_disk.disk_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_disk) (resource)
+- [azurerm_data_protection_backup_instance_kubernetes_cluster.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_kubernetes_cluster) (resource)
 - [azurerm_data_protection_backup_instance_postgresql.postgresql_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql) (resource)
 - [azurerm_data_protection_backup_instance_postgresql_flexible_server.postgresql_flexible_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql_flexible_server) (resource)
 - [azurerm_data_protection_backup_policy_blob_storage.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_blob_storage) (resource)
 - [azurerm_data_protection_backup_policy_disk.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_disk) (resource)
+- [azurerm_data_protection_backup_policy_kubernetes_cluster.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_kubernetes_cluster) (resource)
 - [azurerm_data_protection_backup_policy_postgresql.postgresql_backup_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql) (resource)
 - [azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql_flexible_server) (resource)
 - [azurerm_data_protection_backup_vault.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_vault) (resource)
+- [azurerm_data_protection_resource_guard.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_resource_guard) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
@@ -110,6 +116,26 @@ Type: `string`
 ## Optional Inputs
 
 The following input variables are optional (have default values):
+
+### <a name="input_backup_datasource_parameters"></a> [backup\_datasource\_parameters](#input\_backup\_datasource\_parameters)
+
+Description: Parameters to customize which resources/namespaces are included or excluded from AKS backups.
+
+Type:
+
+```hcl
+object({
+    excluded_namespaces              = optional(list(string), [])
+    included_namespaces              = optional(list(string), [])
+    excluded_resource_types          = optional(list(string), [])
+    included_resource_types          = optional(list(string), [])
+    label_selectors                  = optional(list(string), [])
+    cluster_scoped_resources_enabled = optional(bool, false)
+    volume_snapshot_enabled          = optional(bool, false)
+  })
+```
+
+Default: `{}`
 
 ### <a name="input_backup_policy_id"></a> [backup\_policy\_id](#input\_backup\_policy\_id)
 
@@ -182,6 +208,28 @@ Description: The duration of the default retention rule in ISO 8601 format.
 Type: `string`
 
 Default: `null`
+
+### <a name="input_default_retention_life_cycle"></a> [default\_retention\_life\_cycle](#input\_default\_retention\_life\_cycle)
+
+Description: The lifecycle configuration for default retention rule.
+
+Type:
+
+```hcl
+object({
+    data_store_type = string
+    duration        = string
+  })
+```
+
+Default:
+
+```json
+{
+  "data_store_type": "OperationalStore",
+  "duration": "P14D"
+}
+```
 
 ### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
 
@@ -258,6 +306,60 @@ Description: Immutability state: Disabled, Locked, or Unlocked.
 Type: `string`
 
 Default: `"Disabled"`
+
+### <a name="input_kubernetes_backup_instance_name"></a> [kubernetes\_backup\_instance\_name](#input\_kubernetes\_backup\_instance\_name)
+
+Description: Name for the Kubernetes Cluster backup instance.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_kubernetes_backup_policy_id"></a> [kubernetes\_backup\_policy\_id](#input\_kubernetes\_backup\_policy\_id)
+
+Description: If set, uses this existing backup policy ID instead of creating one.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_kubernetes_backup_policy_name"></a> [kubernetes\_backup\_policy\_name](#input\_kubernetes\_backup\_policy\_name)
+
+Description: Name for the Kubernetes Cluster backup policy.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_kubernetes_cluster_id"></a> [kubernetes\_cluster\_id](#input\_kubernetes\_cluster\_id)
+
+Description: ID of the Kubernetes Cluster to back up.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_kubernetes_retention_rules"></a> [kubernetes\_retention\_rules](#input\_kubernetes\_retention\_rules)
+
+Description: List of retention rules specific to AKS backup policy
+
+Type:
+
+```hcl
+list(object({
+    name                   = string
+    priority               = number
+    absolute_criteria      = optional(string)
+    days_of_week           = optional(list(string))
+    months_of_year         = optional(list(string))
+    scheduled_backup_times = optional(list(string))
+    weeks_of_month         = optional(list(string))
+    data_store_type        = optional(string, "OperationalStore")
+    duration               = string
+  }))
+```
+
+Default: `[]`
 
 ### <a name="input_lock"></a> [lock](#input\_lock)
 
@@ -384,6 +486,22 @@ Default: `null`
 ### <a name="input_postgresql_key_vault_secret_id"></a> [postgresql\_key\_vault\_secret\_id](#input\_postgresql\_key\_vault\_secret\_id)
 
 Description: The ID of the key vault secret that stores the database credentials.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_resource_guard_enabled"></a> [resource\_guard\_enabled](#input\_resource\_guard\_enabled)
+
+Description: Controls whether an Azure Data Protection Resource Guard is deployed to protect the backup vault from accidental or malicious operations.
+
+Type: `bool`
+
+Default: `false`
+
+### <a name="input_resource_guard_name"></a> [resource\_guard\_name](#input\_resource\_guard\_name)
+
+Description: The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix.
 
 Type: `string`
 
@@ -538,6 +656,16 @@ Type: `string`
 
 Default: `"30m"`
 
+### <a name="input_vault_critical_operation_exclusion_list"></a> [vault\_critical\_operation\_exclusion\_list](#input\_vault\_critical\_operation\_exclusion\_list)
+
+Description: A list of the critical operations which are not protected by Resource Guard.  
+By default, all critical operations are protected. Only exclude operations that you want to allow without additional protection.  
+Possible values include: "Delete", "Update", "DisableSoftDelete", and "ChangeBackupProperties".
+
+Type: `list(string)`
+
+Default: `[]`
+
 ### <a name="input_vault_default_retention_duration"></a> [vault\_default\_retention\_duration](#input\_vault\_default\_retention\_duration)
 
 Description: The duration of vault default retention rule in ISO 8601 format.
@@ -585,6 +713,14 @@ Description: The ID of the created PostgreSQL Flexible Server Backup Instance.
 ### <a name="output_postgresql_flexible_backup_policy_id"></a> [postgresql\_flexible\_backup\_policy\_id](#output\_postgresql\_flexible\_backup\_policy\_id)
 
 Description: The ID of the created PostgreSQL Flexible Server Backup Policy.
+
+### <a name="output_resource_guard_id"></a> [resource\_guard\_id](#output\_resource\_guard\_id)
+
+Description: The ID of the Resource Guard (if enabled)
+
+### <a name="output_resource_guard_name"></a> [resource\_guard\_name](#output\_resource\_guard\_name)
+
+Description: The name of the Resource Guard (if enabled)
 
 ### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
 

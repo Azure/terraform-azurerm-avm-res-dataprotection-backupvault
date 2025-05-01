@@ -44,6 +44,16 @@ output "postgresql_flexible_backup_policy_id" {
   value       = try(azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy[0].id, null)
 }
 
+output "resource_guard_id" {
+  description = "The ID of the Resource Guard (if enabled)"
+  value       = try(azurerm_data_protection_resource_guard.this[0].id, null)
+}
+
+output "resource_guard_name" {
+  description = "The name of the Resource Guard (if enabled)"
+  value       = try(azurerm_data_protection_resource_guard.this[0].name, null)
+}
+
 output "resource_id" {
   description = "The ID of the Backup Vault"
   value       = azurerm_data_protection_backup_vault.this.id

@@ -119,6 +119,18 @@ variable "default_retention_duration" {
   description = "The duration of the default retention rule in ISO 8601 format."
 }
 
+variable "default_retention_life_cycle" {
+  type = object({
+    data_store_type = string
+    duration        = string
+  })
+  default = {
+    data_store_type = "OperationalStore"
+    duration        = "P14D" # 14 days is a good default
+  }
+  description = "The lifecycle configuration for default retention rule."
+}
+
 variable "diagnostic_settings" {
   type = map(object({
     name                                     = optional(string, null)
