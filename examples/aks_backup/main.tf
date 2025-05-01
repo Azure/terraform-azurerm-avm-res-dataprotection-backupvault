@@ -45,12 +45,14 @@ resource "azurerm_kubernetes_cluster" "example" {
   default_node_pool {
     name                        = "default"
     vm_size                     = "Standard_D4s_v3"
+    auto_scaling_enabled        = true
     max_count                   = 9
     min_count                   = 3
-    node_count                  = 3
+    orchestrator_version        = null
     os_disk_type                = "Managed"
     temporary_name_for_rotation = "tempnodepool"
-    zones                       = ["1", "2", "3"]
+    type                        = "VirtualMachineScaleSets"
+    zones                       = ["1", "3"]
 
     upgrade_settings {
       max_surge                     = "33%"
@@ -62,6 +64,7 @@ resource "azurerm_kubernetes_cluster" "example" {
     type = "SystemAssigned"
   }
 }
+
 
 # Storage account required for the AKS extension
 resource "azurerm_storage_account" "example" {
