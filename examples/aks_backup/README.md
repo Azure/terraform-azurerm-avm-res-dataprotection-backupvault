@@ -48,6 +48,7 @@ resource "azurerm_kubernetes_cluster" "example" {
   name                = module.naming.kubernetes_cluster.name_unique
   resource_group_name = azurerm_resource_group.example.name
   dns_prefix          = "aks${substr(module.naming.kubernetes_cluster.name_unique, -6, -1)}"
+  sku_tier            = "Standard"
 
   default_node_pool {
     name                        = "default"
