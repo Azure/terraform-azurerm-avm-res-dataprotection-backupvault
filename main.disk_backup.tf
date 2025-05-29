@@ -29,8 +29,7 @@ resource "azurerm_data_protection_backup_instance_disk" "disk_backup_instance" {
 # Backup Policy for Disk
 resource "azurerm_data_protection_backup_policy_disk" "this" {
   count = var.disk_backup_instance_name != null ? 1 : 0
-
-  backup_repeating_time_intervals = length(var.backup_repeating_time_intervals) > 0 ? var.backup_repeating_time_intervals : ["R/2025-01-01T00:00:00+00:00/P1D"]
+  backup_repeating_time_intervals = var.backup_repeating_time_intervals
   default_retention_duration      = var.default_retention_duration
   name                            = var.backup_policy_name != null ? var.backup_policy_name : "${var.name}-disk-policy"
   vault_id                        = azurerm_data_protection_backup_vault.this.id
