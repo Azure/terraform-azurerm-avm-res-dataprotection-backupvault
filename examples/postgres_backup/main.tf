@@ -25,7 +25,8 @@ resource "random_integer" "region_index" {
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["postgres"]
+
+  suffix = ["postgres"]
 }
 
 # Generate a secure password for PostgreSQL
@@ -75,29 +76,19 @@ resource "azurerm_postgresql_database" "example" {
 module "backup_vault" {
   source = "../../"
 
-  location                   = azurerm_resource_group.example.location
-  name                       = "backup-vault-postgresql"
-  resource_group_name        = azurerm_resource_group.example.name
-  datastore_type             = "VaultStore"
-  redundancy                 = "LocallyRedundant"
-  default_retention_duration = "P4M"
-  identity_enabled           = true
-  enable_telemetry           = true
-
+  datastore_type      = "VaultStore"
+  location            = azurerm_resource_group.example.location
+  name                = "backup-vault-postgresql"
+  redundancy          = "LocallyRedundant"
+  resource_group_name = azurerm_resource_group.example.name
   # Inputs for PostgreSQL backup policy and backup instance
   backup_policy_name              = "${module.naming.postgresql_server.name_unique}-backup-policy"
+  backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+  default_retention_duration      = "P4M"
+  enable_telemetry                = true
+  identity_enabled                = true
   postgresql_backup_instance_name = "${module.naming.postgresql_database.name_unique}-instance"
   postgresql_database_id          = azurerm_postgresql_database.example.id
-
-  role_assignments = {
-    postgresql_Contributor = {
-      principal_id               = module.backup_vault.identity_principal_id
-      role_definition_id_or_name = "Contributor"
-      scope                      = azurerm_postgresql_server.example.id
-    }
-  }
-
-  backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
   retention_rules = [
     {
       name     = "Daily"
@@ -106,5 +97,12 @@ module "backup_vault" {
       criteria = [{ absolute_criteria = "FirstOfDay" }]
     }
   ]
+  role_assignments = {
+    postgresql_Contributor = {
+      principal_id               = module.backup_vault.identity_principal_id
+      role_definition_id_or_name = "Contributor"
+      scope                      = azurerm_postgresql_server.example.id
+    }
+  }
 }
 

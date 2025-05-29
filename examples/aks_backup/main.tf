@@ -21,7 +21,8 @@ data "azurerm_client_config" "current" {}
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["aks"]
+
+  suffix = ["aks"]
 }
 
 # Resource groups
@@ -115,33 +116,33 @@ resource "azurerm_role_assignment" "extension_storage_access" {
 
 # Backup vault using the module
 module "backup_vault" {
-  source     = "../../"
-  depends_on = [time_sleep.wait_for_extension]
+  source = "../../"
 
-  name                = "${module.naming.recovery_services_vault.name_unique}-vault"
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
   datastore_type      = "VaultStore"
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
-  identity_enabled    = true
-  enable_telemetry    = true
-
-  # AKS backup policy configuration
-  kubernetes_backup_policy_name   = "${module.naming.kubernetes_cluster.name_unique}-policy"
+  resource_group_name = azurerm_resource_group.example.name
+  # Specify backup datasource parameters
+  backup_datasource_parameters = {
+    excluded_namespaces              = ["kube-system", "kube-public"]
+    included_namespaces              = ["default", "app-namespace"]
+    cluster_scoped_resources_enabled = true
+    volume_snapshot_enabled          = true
+  }
   backup_repeating_time_intervals = ["R/2024-12-01T02:30:00+00:00/P1W"]
-  time_zone                       = "UTC"
-
-  # AKS backup instance configuration
-  kubernetes_backup_instance_name = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
-  kubernetes_cluster_id           = azurerm_kubernetes_cluster.example.id
-  snapshot_resource_group_name    = azurerm_resource_group.snap.name
-
   # AKS default retention configuration
   default_retention_life_cycle = {
     data_store_type = "OperationalStore"
     duration        = "P14D"
   }
-
+  enable_telemetry = true
+  identity_enabled = true
+  # AKS backup instance configuration
+  kubernetes_backup_instance_name = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
+  # AKS backup policy configuration
+  kubernetes_backup_policy_name = "${module.naming.kubernetes_cluster.name_unique}-policy"
+  kubernetes_cluster_id         = azurerm_kubernetes_cluster.example.id
   # Additional retention rules
   kubernetes_retention_rules = [
     {
@@ -159,14 +160,10 @@ module "backup_vault" {
       duration          = "P365D"
     }
   ]
+  snapshot_resource_group_name = azurerm_resource_group.snap.name
+  time_zone                    = "UTC"
 
-  # Specify backup datasource parameters
-  backup_datasource_parameters = {
-    excluded_namespaces              = ["kube-system", "kube-public"]
-    included_namespaces              = ["default", "app-namespace"]
-    cluster_scoped_resources_enabled = true
-    volume_snapshot_enabled          = true
-  }
+  depends_on = [time_sleep.wait_for_extension]
 }
 
 # Create trusted access role binding between AKS and backup vault

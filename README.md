@@ -155,7 +155,7 @@ Default: `null`
 
 ### <a name="input_backup_repeating_time_intervals"></a> [backup\_repeating\_time\_intervals](#input\_backup\_repeating\_time\_intervals)
 
-Description: Specifies a list of repeating time intervals in ISO 8601 format.
+Description: The repeating time intervals for disk backup policy in ISO8601 format (e.g., ['R/2024-01-01T00:00:00Z/P1D']).
 
 Type: `list(string)`
 

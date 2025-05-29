@@ -31,7 +31,8 @@ resource "random_integer" "region_index" {
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["blob"]
+
+  suffix = ["blob"]
 }
 
 # Create a Resource Group in the randomly selected region
@@ -60,37 +61,20 @@ resource "azurerm_storage_container" "example" {
 module "backup_vault" {
   source = "../../"
 
-  location                               = azurerm_resource_group.example.location
-  name                                   = "${module.naming.recovery_services_vault.name_unique}-vault"
-  resource_group_name                    = azurerm_resource_group.example.name
-  datastore_type                         = "VaultStore"
-  redundancy                             = "LocallyRedundant"
-  vault_default_retention_duration       = "P90D"
-  operational_default_retention_duration = "P30D"
-  identity_enabled                       = true
-  enable_telemetry                       = true
-  soft_delete                            = "Off"
+  datastore_type      = "VaultStore"
+  location            = azurerm_resource_group.example.location
+  name                = "${module.naming.recovery_services_vault.name_unique}-vault"
+  redundancy          = "LocallyRedundant"
+  resource_group_name = azurerm_resource_group.example.name
+  backup_policy_id    = module.backup_vault.backup_policy_id
   # Inputs for backup policy and backup instance
-  backup_policy_name        = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-  blob_backup_instance_name = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
-  storage_account_id        = azurerm_storage_account.example.id
-  backup_policy_id          = module.backup_vault.backup_policy_id
-
-  storage_account_container_names = [azurerm_storage_container.example.name]
-
-  role_assignments = {
-    example_assignment = {
-      principal_id               = module.backup_vault.identity_principal_id
-      role_definition_id_or_name = "Storage Account Backup Contributor"
-      description                = "Backup Contributor for Blob Storage"
-      scope                      = azurerm_storage_account.example.id
-    }
-  }
-
+  backup_policy_name = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
   # Valid repeating intervals for backup
-  backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
-  time_zone                       = "Central Standard Time"
-
+  backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+  blob_backup_instance_name              = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
+  enable_telemetry                       = true
+  identity_enabled                       = true
+  operational_default_retention_duration = "P30D"
   # Define the retention rules list here
   retention_rules = [
     {
@@ -118,6 +102,19 @@ module "backup_vault" {
       }]
     }
   ]
+  role_assignments = {
+    example_assignment = {
+      principal_id               = module.backup_vault.identity_principal_id
+      role_definition_id_or_name = "Storage Account Backup Contributor"
+      description                = "Backup Contributor for Blob Storage"
+      scope                      = azurerm_storage_account.example.id
+    }
+  }
+  soft_delete                      = "Off"
+  storage_account_container_names  = [azurerm_storage_container.example.name]
+  storage_account_id               = azurerm_storage_account.example.id
+  time_zone                        = "Central Standard Time"
+  vault_default_retention_duration = "P90D"
 }
 
 # Apply diagnostic settings to the Storage Account

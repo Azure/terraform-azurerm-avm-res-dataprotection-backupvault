@@ -16,8 +16,8 @@ provider "azurerm" {
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["test"]
 
+  suffix = ["test"]
 }
 
 # Create a Resource Group in the randomly selected region
@@ -28,14 +28,14 @@ resource "azurerm_resource_group" "example" {
 
 # Call the Backup Vault Module
 module "backup_vault" {
-  source              = "../../" # Replace with correct module path
-  location            = azurerm_resource_group.example.location
-  name                = module.naming.recovery_services_vault.name_unique
-  resource_group_name = azurerm_resource_group.example.name
+  source = "../../" # Replace with correct module path
 
   # Minimum required variables
   datastore_type      = "VaultStore"
+  location            = azurerm_resource_group.example.location
+  name                = module.naming.recovery_services_vault.name_unique
   redundancy          = "GeoRedundant"
-  enable_telemetry    = true # Enable telemetry (optional)
+  resource_group_name = azurerm_resource_group.example.name
   diagnostic_settings = {}
+  enable_telemetry    = true # Enable telemetry (optional)
 }

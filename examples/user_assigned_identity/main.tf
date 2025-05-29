@@ -31,7 +31,8 @@ resource "random_integer" "region_index" {
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["test"]
+
+  suffix = ["test"]
 }
 
 # Create a Resource Group in the randomly selected region
@@ -49,22 +50,20 @@ resource "azurerm_user_assigned_identity" "example" {
 
 # Call the Backup Vault Module and assign the User-Assigned Managed Identity
 module "backup_vault" {
-  source              = "../../"
-  location            = azurerm_resource_group.example.location
-  name                = module.naming.recovery_services_vault.name_unique
-  resource_group_name = azurerm_resource_group.example.name
+  source = "../../"
 
   # Minimum required variables
-  datastore_type   = "VaultStore"
-  redundancy       = "GeoRedundant"
-  enable_telemetry = true
-
+  datastore_type      = "VaultStore"
+  location            = azurerm_resource_group.example.location
+  name                = module.naming.recovery_services_vault.name_unique
+  redundancy          = "GeoRedundant"
+  resource_group_name = azurerm_resource_group.example.name
+  enable_telemetry    = true
   # Assign the User-Assigned Managed Identity
   managed_identities = {
     system_assigned            = false
     user_assigned_resource_ids = [azurerm_user_assigned_identity.example.id]
   }
-
   # Role assignments
   role_assignments = {
     contributor_role = {

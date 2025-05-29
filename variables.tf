@@ -64,7 +64,14 @@ variable "backup_policy_name" {
 variable "backup_repeating_time_intervals" {
   type        = list(string)
   default     = []
-  description = "Specifies a list of repeating time intervals in ISO 8601 format."
+  description = "The repeating time intervals for disk backup policy in ISO8601 format (e.g., ['R/2024-01-01T00:00:00Z/P1D'])."
+
+  validation {
+    condition = (
+      var.disk_backup_instance_name == null || length(var.backup_repeating_time_intervals) > 0
+    )
+    error_message = "backup_repeating_time_intervals must be provided (length > 0) if disk_backup_instance_name is set."
+  }
 }
 
 # Name for the Backup Instance Blob Storage

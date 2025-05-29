@@ -22,14 +22,14 @@ resource "azurerm_data_protection_resource_guard" "this" {
 resource "azapi_resource" "vault_resource_guard_association" {
   count = var.resource_guard_enabled ? 1 : 0
 
-  type = "Microsoft.DataProtection/backupVaults/backupResourceGuardProxies@2023-05-01"
+  name      = "DppResourceGuardProxy"
+  parent_id = azurerm_data_protection_backup_vault.this.id
+  type      = "Microsoft.DataProtection/backupVaults/backupResourceGuardProxies@2023-05-01"
   body = jsonencode({
     properties = {
       resourceGuardResourceId = azurerm_data_protection_resource_guard.this[0].id
     }
   })
-  name                      = "DppResourceGuardProxy"
-  parent_id                 = azurerm_data_protection_backup_vault.this.id
   schema_validation_enabled = false
 
   depends_on = [

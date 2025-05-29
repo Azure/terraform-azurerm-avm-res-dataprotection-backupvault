@@ -48,7 +48,8 @@ resource "random_password" "postgres_password" {
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  suffix  = ["postgres"]
+
+  suffix = ["postgres"]
 }
 
 # Create a Resource Group in the randomly selected region
@@ -88,20 +89,27 @@ resource "azurerm_postgresql_flexible_server" "example" {
 module "backup_vault" {
   source = "../../"
 
-  location                   = azurerm_resource_group.example.location
-  name                       = "backup-vault-postgresql-flex"
-  resource_group_name        = azurerm_resource_group.example.name
-  datastore_type             = "VaultStore"
-  redundancy                 = "LocallyRedundant"
-  default_retention_duration = "P4M"
-  identity_enabled           = true
-  enable_telemetry           = true
-
+  datastore_type      = "VaultStore"
+  location            = azurerm_resource_group.example.location
+  name                = "backup-vault-postgresql-flex"
+  redundancy          = "LocallyRedundant"
+  resource_group_name = azurerm_resource_group.example.name
   # Inputs for PostgreSQL Flexible backup policy and backup instance
   backup_policy_name                       = "${module.naming.postgresql_server.name_unique}-backup-policy"
+  backup_repeating_time_intervals          = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+  default_retention_duration               = "P4M"
+  enable_telemetry                         = true
+  identity_enabled                         = true
   postgresql_flexible_backup_instance_name = "${module.naming.postgresql_server.name_unique}-postgresflex-instance"
   postgresql_flexible_server_id            = azurerm_postgresql_flexible_server.example.id != "" ? azurerm_postgresql_flexible_server.example.id : null
-
+  retention_rules = [
+    {
+      name     = "Daily"
+      duration = "P7D"
+      priority = 25
+      criteria = [{ absolute_criteria = "FirstOfDay" }]
+    }
+  ]
   role_assignments = {
     postgresql_contributor = {
       principal_id               = module.backup_vault.identity_principal_id
@@ -116,16 +124,6 @@ module "backup_vault" {
       description                = "Allow backup vault identity to read resource group information"
     }
   }
-
-  backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
-  retention_rules = [
-    {
-      name     = "Daily"
-      duration = "P7D"
-      priority = 25
-      criteria = [{ absolute_criteria = "FirstOfDay" }]
-    }
-  ]
 }
 ```
 

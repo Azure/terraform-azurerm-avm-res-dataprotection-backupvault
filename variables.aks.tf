@@ -1,27 +1,3 @@
-variable "kubernetes_backup_policy_name" {
-  type        = string
-  default     = null
-  description = "Name for the Kubernetes Cluster backup policy."
-}
-
-variable "kubernetes_backup_policy_id" {
-  type        = string
-  default     = null
-  description = "If set, uses this existing backup policy ID instead of creating one."
-}
-
-variable "kubernetes_backup_instance_name" {
-  type        = string
-  default     = null
-  description = "Name for the Kubernetes Cluster backup instance."
-}
-
-variable "kubernetes_cluster_id" {
-  type        = string
-  default     = null
-  description = "ID of the Kubernetes Cluster to back up."
-}
-
 variable "backup_datasource_parameters" {
   type = object({
     excluded_namespaces              = optional(list(string), [])
@@ -36,8 +12,31 @@ variable "backup_datasource_parameters" {
   description = "Parameters to customize which resources/namespaces are included or excluded from AKS backups."
 }
 
+variable "kubernetes_backup_instance_name" {
+  type        = string
+  default     = null
+  description = "Name for the Kubernetes Cluster backup instance."
+}
+
+variable "kubernetes_backup_policy_id" {
+  type        = string
+  default     = null
+  description = "If set, uses this existing backup policy ID instead of creating one."
+}
+
+variable "kubernetes_backup_policy_name" {
+  type        = string
+  default     = null
+  description = "Name for the Kubernetes Cluster backup policy."
+}
+
+variable "kubernetes_cluster_id" {
+  type        = string
+  default     = null
+  description = "ID of the Kubernetes Cluster to back up."
+}
+
 variable "kubernetes_retention_rules" {
-  description = "List of retention rules specific to AKS backup policy"
   type = list(object({
     name                   = string
     priority               = number
@@ -49,5 +48,6 @@ variable "kubernetes_retention_rules" {
     data_store_type        = optional(string, "OperationalStore")
     duration               = string
   }))
-  default = []
+  default     = []
+  description = "List of retention rules specific to AKS backup policy"
 }

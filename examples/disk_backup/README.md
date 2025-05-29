@@ -41,8 +41,9 @@ provider "azurerm" {
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "~> 0.3"
-  prefix  = ["avm"]
-  suffix  = ["demo"]
+
+  prefix = ["avm"]
+  suffix = ["demo"]
 }
 
 # Resource Group
@@ -93,23 +94,14 @@ resource "azurerm_resource_group" "snapshots" {
 module "backup_vault" {
   source = "../../"
 
-  name                = "${module.naming.recovery_services_vault.name_unique}-vault"
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
-  datastore_type      = "VaultStore"
-  redundancy          = "LocallyRedundant"
-
-  default_retention_duration             = "P30D"
-  vault_default_retention_duration       = "P90D"
-  operational_default_retention_duration = "P30D"
-  retention_duration_in_days             = 14
-
-  immutability     = "Disabled"
-  soft_delete      = "Off"
-  identity_enabled = true
-
-  lock = null
-
+  datastore_type                  = "VaultStore"
+  location                        = azurerm_resource_group.example.location
+  name                            = "${module.naming.recovery_services_vault.name_unique}-vault"
+  redundancy                      = "LocallyRedundant"
+  resource_group_name             = azurerm_resource_group.example.name
+  backup_policy_name              = "${module.naming.recovery_services_vault.name_unique}-disk-policy"
+  backup_repeating_time_intervals = ["R/2025-01-01T00:00:00+00:00/P1D"]
+  default_retention_duration      = "P30D"
   diagnostic_settings = {
     diag_to_law = {
       name                  = "diag-law"
@@ -119,26 +111,14 @@ module "backup_vault" {
       workspace_resource_id = azurerm_log_analytics_workspace.example.id
     }
   }
-  backup_policy_name              = "${module.naming.recovery_services_vault.name_unique}-disk-policy"
-  backup_repeating_time_intervals = ["R/2025-01-01T00:00:00+00:00/P1D"]
-
-  disk_backup_instance_name    = "${module.naming.recovery_services_vault.name_unique}-disk-instance"
-  disk_id                      = azurerm_managed_disk.example.id
-  snapshot_resource_group_name = azurerm_resource_group.snapshots.name
-
-  role_assignments = {
-    disk_backup_reader = {
-      principal_id               = module.backup_vault.identity_principal_id
-      role_definition_id_or_name = "Disk Backup Reader"
-      scope                      = azurerm_managed_disk.example.id
-    }
-    disk_snapshot_contributor = {
-      principal_id               = module.backup_vault.identity_principal_id
-      role_definition_id_or_name = "Disk Snapshot Contributor"
-      scope                      = azurerm_resource_group.snapshots.id
-    }
-  }
-
+  disk_backup_instance_name              = "${module.naming.recovery_services_vault.name_unique}-disk-instance"
+  disk_id                                = azurerm_managed_disk.example.id
+  enable_telemetry                       = true
+  identity_enabled                       = true
+  immutability                           = "Disabled"
+  lock                                   = null
+  operational_default_retention_duration = "P30D"
+  retention_duration_in_days             = 14
   retention_rules = [
     {
       name     = "Daily"
@@ -157,14 +137,26 @@ module "backup_vault" {
       }]
     }
   ]
-
+  role_assignments = {
+    disk_backup_reader = {
+      principal_id               = module.backup_vault.identity_principal_id
+      role_definition_id_or_name = "Disk Backup Reader"
+      scope                      = azurerm_managed_disk.example.id
+    }
+    disk_snapshot_contributor = {
+      principal_id               = module.backup_vault.identity_principal_id
+      role_definition_id_or_name = "Disk Snapshot Contributor"
+      scope                      = azurerm_resource_group.snapshots.id
+    }
+  }
+  snapshot_resource_group_name = azurerm_resource_group.snapshots.name
+  soft_delete                  = "Off"
   tags = {
     Environment = "Demo"
     Service     = "Data Protection"
     CreatedBy   = "Terraform"
   }
-
-  enable_telemetry = true
+  vault_default_retention_duration = "P90D"
 }
 ```
 

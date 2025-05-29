@@ -1,33 +1,3 @@
-# PostgreSQL Flexible Server variables
-variable "postgresql_flexible_backup_instance_name" {
-  type        = string
-  default     = null
-  description = "The name of the PostgreSQL Flexible Server Backup Instance."
-
-  validation {
-    condition     = var.postgresql_flexible_backup_instance_name != null ? (length(var.postgresql_flexible_backup_instance_name) >= 5 && length(var.postgresql_flexible_backup_instance_name) <= 50) : true
-    error_message = "The name must be between 5 and 50 characters long if provided."
-  }
-}
-
-variable "postgresql_flexible_backup_policy_id" {
-  type        = string
-  default     = null
-  description = "The ID of the PostgreSQL Flexible Server Backup Policy to use. If not provided, the module will create a policy."
-}
-
-variable "postgresql_backup_policy_name" {
-  type        = string
-  default     = null
-  description = "The name of the PostgreSQL Flexible Server Backup Policy."
-}
-
-variable "postgresql_flexible_server_id" {
-  type        = string
-  default     = null
-  description = "The ID of the PostgreSQL Flexible Server to be backed up."
-}
-
 variable "pg_retention_rules" {
   type = list(object({
     name                   = string
@@ -52,4 +22,34 @@ variable "pg_retention_rules" {
     ])
     error_message = "Each retention rule must have either absolute_criteria OR days_of_week with scheduled_backup_times OR weeks_of_month with days_of_week and scheduled_backup_times."
   }
+}
+
+variable "postgresql_backup_policy_name" {
+  type        = string
+  default     = null
+  description = "The name of the PostgreSQL Flexible Server Backup Policy."
+}
+
+# PostgreSQL Flexible Server variables
+variable "postgresql_flexible_backup_instance_name" {
+  type        = string
+  default     = null
+  description = "The name of the PostgreSQL Flexible Server Backup Instance."
+
+  validation {
+    condition     = var.postgresql_flexible_backup_instance_name != null ? (length(var.postgresql_flexible_backup_instance_name) >= 5 && length(var.postgresql_flexible_backup_instance_name) <= 50) : true
+    error_message = "The name must be between 5 and 50 characters long if provided."
+  }
+}
+
+variable "postgresql_flexible_backup_policy_id" {
+  type        = string
+  default     = null
+  description = "The ID of the PostgreSQL Flexible Server Backup Policy to use. If not provided, the module will create a policy."
+}
+
+variable "postgresql_flexible_server_id" {
+  type        = string
+  default     = null
+  description = "The ID of the PostgreSQL Flexible Server to be backed up."
 }
