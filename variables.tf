@@ -1,3 +1,17 @@
+#Unique Module Variables
+variable "datastore_type" {
+  type        = string
+  description = <<DESCRIPTION
+Specifies the type of the datastore. Changing this forces a new resource to be created.
+Valid options: ArchiveStore, OperationalStore, SnapshotStore, VaultStore.
+DESCRIPTION
+
+  validation {
+    condition     = contains(["ArchiveStore", "OperationalStore", "SnapshotStore", "VaultStore"], var.datastore_type)
+    error_message = "datastore_type must be one of: ArchiveStore, OperationalStore, SnapshotStore, VaultStore."
+  }
+}
+
 variable "location" {
   type        = string
   description = "Azure region where the resource should be deployed."
@@ -6,13 +20,24 @@ variable "location" {
 
 variable "name" {
   type        = string
-  description = "The name of the this resource."
+  description = "The name of this resource. Must be between 5 and 50 characters long."
 
   validation {
-    condition     = can(regex("TODO", var.name))
-    error_message = "The name must be TODO." # TODO remove the example below once complete:
-    #condition     = can(regex("^[a-z0-9]{5,50}$", var.name))
-    #error_message = "The name must be between 5 and 50 characters long and can only contain lowercase letters and numbers."
+    condition     = length(var.name) >= 5 && length(var.name) <= 50
+    error_message = "The name must be between 5 and 50 characters long."
+  }
+}
+
+variable "redundancy" {
+  type        = string
+  description = <<DESCRIPTION
+Specifies the backup storage redundancy. Changing this forces a new resource to be created.
+Valid options: GeoRedundant, LocallyRedundant, ZoneRedundant.
+DESCRIPTION
+
+  validation {
+    condition     = contains(["GeoRedundant", "LocallyRedundant", "ZoneRedundant"], var.redundancy)
+    error_message = "redundancy must be one of: GeoRedundant, LocallyRedundant, ZoneRedundant."
   }
 }
 
@@ -20,6 +45,56 @@ variable "name" {
 variable "resource_group_name" {
   type        = string
   description = "The resource group where the resources will be deployed."
+}
+
+# Backup policy ID
+variable "backup_policy_id" {
+  type        = string
+  default     = null
+  description = "The ID of the Backup Policy that applies to the Backup Instance Blob Storage."
+}
+
+variable "backup_policy_name" {
+  type        = string
+  default     = null
+  description = "The name which should be used for this Backup Policy Blob Storage."
+}
+
+# Backup Policy Variables for Disk
+variable "backup_repeating_time_intervals" {
+  type        = list(string)
+  default     = []
+  description = "The repeating time intervals for disk backup policy in ISO8601 format (e.g., ['R/2024-01-01T00:00:00Z/P1D'])."
+
+  validation {
+    condition = (
+      var.disk_backup_instance_name == null || length(var.backup_repeating_time_intervals) > 0
+    )
+    error_message = "backup_repeating_time_intervals must be provided (length > 0) if disk_backup_instance_name is set."
+  }
+}
+
+# Name for the Backup Instance Blob Storage
+variable "blob_backup_instance_name" {
+  type        = string
+  default     = null
+  description = "The name of the Backup Instance Blob Storage."
+
+  validation {
+    condition     = var.blob_backup_instance_name != null ? (length(var.blob_backup_instance_name) >= 5 && length(var.blob_backup_instance_name) <= 50) : true
+    error_message = "The name must be between 5 and 50 characters long if provided."
+  }
+}
+
+variable "cross_region_restore_enabled" {
+  type        = bool
+  default     = false
+  description = "Whether to enable cross-region restore for the Backup Vault. Can only be enabled with GeoRedundant redundancy."
+
+  validation {
+    condition     = var.redundancy == "GeoRedundant" || var.cross_region_restore_enabled == false
+    error_message = "cross_region_restore_enabled can only be enabled when redundancy is set to GeoRedundant."
+  }
 }
 
 # required AVM interfaces
@@ -43,6 +118,24 @@ A map describing customer-managed keys to associate with the resource. This incl
 - `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
   - `resource_id` - The resource ID of the user-assigned identity.
 DESCRIPTION  
+}
+
+variable "default_retention_duration" {
+  type        = string
+  default     = null
+  description = "The duration of the default retention rule in ISO 8601 format."
+}
+
+variable "default_retention_life_cycle" {
+  type = object({
+    data_store_type = string
+    duration        = string
+  })
+  default = {
+    data_store_type = "OperationalStore"
+    duration        = "P14D" # 14 days is a good default
+  }
+  description = "The lifecycle configuration for default retention rule."
 }
 
 variable "diagnostic_settings" {
@@ -90,6 +183,24 @@ DESCRIPTION
   }
 }
 
+# Disk Backup Instance Variables
+variable "disk_backup_instance_name" {
+  type        = string
+  default     = null
+  description = "The name of the Backup Instance Disk."
+
+  validation {
+    condition     = var.disk_backup_instance_name != null ? (length(var.disk_backup_instance_name) >= 5 && length(var.disk_backup_instance_name) <= 50) : true
+    error_message = "The name must be between 5 and 50 characters long if provided."
+  }
+}
+
+variable "disk_id" {
+  type        = string
+  default     = null
+  description = "The ID of the source Disk for Backup."
+}
+
 variable "enable_telemetry" {
   type        = bool
   default     = true
@@ -99,6 +210,23 @@ For more information see <https://aka.ms/avm/telemetryinfo>.
 If it is set to false, then no telemetry will be collected.
 DESCRIPTION
   nullable    = false
+}
+
+variable "identity_enabled" {
+  type        = bool
+  default     = false
+  description = "Whether to enable Managed Service Identity for the Backup Vault."
+}
+
+variable "immutability" {
+  type        = string
+  default     = "Disabled"
+  description = "Immutability state: Disabled, Locked, or Unlocked."
+
+  validation {
+    condition     = contains(["Disabled", "Locked", "Unlocked"], var.immutability)
+    error_message = "immutability must be one of: Disabled, Locked, Unlocked."
+  }
 }
 
 variable "lock" {
@@ -136,94 +264,113 @@ DESCRIPTION
   nullable    = false
 }
 
-variable "private_endpoints" {
-  type = map(object({
-    name = optional(string, null)
-    role_assignments = optional(map(object({
-      role_definition_id_or_name             = string
-      principal_id                           = string
-      description                            = optional(string, null)
-      skip_service_principal_aad_check       = optional(bool, false)
-      condition                              = optional(string, null)
-      condition_version                      = optional(string, null)
-      delegated_managed_identity_resource_id = optional(string, null)
-    })), {})
-    lock = optional(object({
-      kind = string
-      name = optional(string, null)
-    }), null)
-    tags                                    = optional(map(string), null)
-    subnet_resource_id                      = string
-    private_dns_zone_group_name             = optional(string, "default")
-    private_dns_zone_resource_ids           = optional(set(string), [])
-    application_security_group_associations = optional(map(string), {})
-    private_service_connection_name         = optional(string, null)
-    network_interface_name                  = optional(string, null)
-    location                                = optional(string, null)
-    resource_group_name                     = optional(string, null)
-    ip_configurations = optional(map(object({
-      name               = string
-      private_ip_address = string
-    })), {})
-  }))
-  default     = {}
-  description = <<DESCRIPTION
-A map of private endpoints to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-
-- `name` - (Optional) The name of the private endpoint. One will be generated if not set.
-- `role_assignments` - (Optional) A map of role assignments to create on the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time. See `var.role_assignments` for more information.
-- `lock` - (Optional) The lock level to apply to the private endpoint. Default is `None`. Possible values are `None`, `CanNotDelete`, and `ReadOnly`.
-- `tags` - (Optional) A mapping of tags to assign to the private endpoint.
-- `subnet_resource_id` - The resource ID of the subnet to deploy the private endpoint in.
-- `private_dns_zone_group_name` - (Optional) The name of the private DNS zone group. One will be generated if not set.
-- `private_dns_zone_resource_ids` - (Optional) A set of resource IDs of private DNS zones to associate with the private endpoint. If not set, no zone groups will be created and the private endpoint will not be associated with any private DNS zones. DNS records must be managed external to this module.
-- `application_security_group_resource_ids` - (Optional) A map of resource IDs of application security groups to associate with the private endpoint. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-- `private_service_connection_name` - (Optional) The name of the private service connection. One will be generated if not set.
-- `network_interface_name` - (Optional) The name of the network interface. One will be generated if not set.
-- `location` - (Optional) The Azure location where the resources will be deployed. Defaults to the location of the resource group.
-- `resource_group_name` - (Optional) The resource group where the resources will be deployed. Defaults to the resource group of this resource.
-- `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-  - `name` - The name of the IP configuration.
-  - `private_ip_address` - The private IP address of the IP configuration.
-DESCRIPTION
-  nullable    = false
+variable "operational_default_retention_duration" {
+  type        = string
+  default     = null
+  description = "The duration of operational default retention rule in ISO 8601 format."
 }
 
-# This variable is used to determine if the private_dns_zone_group block should be included,
-# or if it is to be managed externally, e.g. using Azure Policy.
-# https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
-# Alternatively you can use AzAPI, which does not have this issue.
-variable "private_endpoints_manage_dns_zone_group" {
-  type        = bool
-  default     = true
-  description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
-  nullable    = false
+variable "retention_duration_in_days" {
+  type        = number
+  default     = 14
+  description = <<DESCRIPTION
+The soft delete retention duration for this Backup Vault. Valid values are between 14 and 180. Defaults to 14.
+DESCRIPTION
+
+  validation {
+    condition     = var.retention_duration_in_days >= 14 && var.retention_duration_in_days <= 180
+    error_message = "retention_duration_in_days must be between 14 and 180."
+  }
+}
+
+variable "retention_rules" {
+  type = list(object({
+    name     = string
+    duration = optional(string, null) # Make duration optional to support both cases
+    priority = number
+    criteria = list(object({
+      absolute_criteria      = string
+      days_of_month          = optional(list(number), null)
+      days_of_week           = optional(list(string), null)
+      months_of_year         = optional(list(string), null)
+      scheduled_backup_times = optional(list(string), null)
+      weeks_of_month         = optional(list(string), null)
+    }))
+    life_cycle = optional(list(object({
+      data_store_type = string
+      duration        = string
+    })), [])
+  }))
+  default     = []
+  description = "List of retention rules for the backup policy. Optional, can be left as an empty list."
 }
 
 variable "role_assignments" {
   type = map(object({
     role_definition_id_or_name             = string
     principal_id                           = string
+    scope                                  = optional(string)
     description                            = optional(string, null)
     skip_service_principal_aad_check       = optional(bool, false)
     condition                              = optional(string, null)
     condition_version                      = optional(string, null)
     delegated_managed_identity_resource_id = optional(string, null)
+    principal_type                         = optional(string, null)
   }))
   default     = {}
   description = <<DESCRIPTION
-A map of role assignments to create on this resource. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-
-- `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
-- `principal_id` - The ID of the principal to assign the role to.
-- `description` - The description of the role assignment.
-- `skip_service_principal_aad_check` - If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
-- `condition` - The condition which will be used to scope the role assignment.
-- `condition_version` - The version of the condition syntax. Valid values are '2.0'.
-
-> Note: only set `skip_service_principal_aad_check` to true if you are assigning a role to a service principal.
-DESCRIPTION
+  A map of role assignments to create on resources. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+  
+  - `role_definition_id_or_name` - The ID or name of the role definition to assign to the principal.
+  - `principal_id` - The ID of the principal to assign the role to.
+  - `scope` - (Optional) The scope at which the role assignment applies to. Defaults to the backup vault resource ID.
+  - `description` - (Optional) The description of the role assignment.
+  - `skip_service_principal_aad_check` - (Optional) If set to true, skips the Azure Active Directory check for the service principal in the tenant. Defaults to false.
+  - `condition` - (Optional) The condition which will be used to scope the role assignment.
+  - `condition_version` - (Optional) The version of the condition syntax. Leave as `null` if you are not using a condition, if you are then valid values are '2.0'.
+  - `delegated_managed_identity_resource_id` - (Optional) The delegated Azure Resource Id which contains a Managed Identity.
+  - `principal_type` - (Optional) The type of the `principal_id`. Possible values are `User`, `Group` and `ServicePrincipal`.
+  DESCRIPTION
   nullable    = false
+}
+
+variable "snapshot_resource_group_name" {
+  type        = string
+  default     = null
+  description = "The name of the Resource Group where snapshots are stored."
+}
+
+variable "soft_delete" {
+  type        = string
+  default     = "Off"
+  description = <<DESCRIPTION
+The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to On.
+Once set to AlwaysOn, the setting cannot be changed.
+DESCRIPTION
+
+  validation {
+    condition     = contains(["AlwaysOn", "Off", "On"], var.soft_delete)
+    error_message = "soft_delete must be one of: AlwaysOn, Off, On."
+  }
+}
+
+# List of container names (optional)
+variable "storage_account_container_names" {
+  type        = list(string)
+  default     = []
+  description = "Optional list of container names in the source Storage Account."
+}
+
+# Storage account ID
+variable "storage_account_id" {
+  type        = string
+  default     = null
+  description = "The ID of the source Storage Account for the Backup Instance."
+
+  validation {
+    condition     = var.storage_account_id != null ? can(regex("^/subscriptions/[a-zA-Z0-9-]+/resourceGroups/[a-zA-Z0-9-_]+/providers/Microsoft.Storage/storageAccounts/[a-z0-9]+$", var.storage_account_id)) : true
+    error_message = "The storage_account_id must be a valid Azure resource ID for a storage account."
+  }
 }
 
 # tflint-ignore: terraform_unused_declarations
@@ -231,4 +378,41 @@ variable "tags" {
   type        = map(string)
   default     = null
   description = "(Optional) Tags of the resource."
+}
+
+variable "time_zone" {
+  type        = string
+  default     = null
+  description = "Specifies the Time Zone which should be used by the backup schedule."
+}
+
+# Timeouts (Optional)
+variable "timeout_create" {
+  type        = string
+  default     = "30m"
+  description = "The timeout duration for creating the Backup Instance Blob Storage."
+}
+
+variable "timeout_delete" {
+  type        = string
+  default     = "30m"
+  description = "The timeout duration for deleting the Backup Instance Blob Storage."
+}
+
+variable "timeout_read" {
+  type        = string
+  default     = "5m"
+  description = "The timeout duration for reading the Backup Instance Blob Storage."
+}
+
+variable "timeout_update" {
+  type        = string
+  default     = "30m"
+  description = "The timeout duration for updating the Backup Instance Blob Storage."
+}
+
+variable "vault_default_retention_duration" {
+  type        = string
+  default     = null
+  description = "The duration of vault default retention rule in ISO 8601 format."
 }
