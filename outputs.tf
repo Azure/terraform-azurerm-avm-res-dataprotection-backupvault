@@ -1,3 +1,5 @@
+# Identity Outputs
+
 # Backup Instance Outputs
 output "backup_instance_ids" {
   description = "Map of backup instance IDs by instance key."
@@ -8,17 +10,6 @@ output "backup_instance_ids" {
     { for k, v in azurerm_data_protection_backup_instance_postgresql.this : k => v.id },
     { for k, v in azurerm_data_protection_backup_instance_postgresql_flexible_server.this : k => v.id }
   )
-}
-
-# Legacy Outputs (DEPRECATED - for backward compatibility)
-output "backup_policy_blob_storage_id" {
-  description = "(DEPRECATED) The ID of the Blob Storage Backup Policy. Use backup_policy_ids instead."
-  value       = try(values(azurerm_data_protection_backup_policy_blob_storage.this)[0].id, null)
-}
-
-output "backup_policy_id" {
-  description = "(DEPRECATED) The ID of the Backup Policy. Use backup_policy_ids instead."
-  value       = try(values(azurerm_data_protection_backup_policy_blob_storage.this)[0].id, null)
 }
 
 # Backup Policy Outputs
@@ -69,7 +60,6 @@ output "disk_backup_policy_ids" {
   value       = { for k, v in azurerm_data_protection_backup_policy_disk.this : k => v.id }
 }
 
-# Identity Outputs
 output "identity_principal_id" {
   description = "The Principal ID for the Service Principal associated with the Identity of this Backup Vault."
   value       = try(azurerm_data_protection_backup_vault.this.identity[0].principal_id, null)

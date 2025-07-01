@@ -361,14 +361,6 @@ Type: `bool`
 
 Default: `true`
 
-### <a name="input_identity_enabled"></a> [identity\_enabled](#input\_identity\_enabled)
-
-Description: Whether to enable system-assigned managed identity for the backup vault.
-
-Type: `bool`
-
-Default: `false`
-
 ### <a name="input_immutability"></a> [immutability](#input\_immutability)
 
 Description: Immutability state: Disabled, Locked, or Unlocked.
@@ -596,14 +588,6 @@ The following outputs are exported:
 ### <a name="output_backup_instance_ids"></a> [backup\_instance\_ids](#output\_backup\_instance\_ids)
 
 Description: Map of backup instance IDs by instance key.
-
-### <a name="output_backup_policy_blob_storage_id"></a> [backup\_policy\_blob\_storage\_id](#output\_backup\_policy\_blob\_storage\_id)
-
-Description: (DEPRECATED) The ID of the Blob Storage Backup Policy. Use backup\_policy\_ids instead.
-
-### <a name="output_backup_policy_id"></a> [backup\_policy\_id](#output\_backup\_policy\_id)
-
-Description: (DEPRECATED) The ID of the Backup Policy. Use backup\_policy\_ids instead.
 
 ### <a name="output_backup_policy_ids"></a> [backup\_policy\_ids](#output\_backup\_policy\_ids)
 

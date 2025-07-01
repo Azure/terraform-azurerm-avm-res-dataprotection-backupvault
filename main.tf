@@ -72,12 +72,8 @@ resource "azurerm_data_protection_backup_vault" "this" {
   soft_delete                  = var.soft_delete
   tags                         = var.tags
 
-  dynamic "identity" {
-    for_each = var.identity_enabled ? [1] : []
-
-    content {
-      type = "SystemAssigned"
-    }
+  identity {
+    type = try(var.managed_identities.system_assigned, false) ? "SystemAssigned" : null
   }
 
   lifecycle {
