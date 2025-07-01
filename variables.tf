@@ -1,3 +1,5 @@
+# Direct AKS/Kubernetes backup configuration variables
+
 #Unique Module Variables
 variable "datastore_type" {
   type        = string
@@ -45,21 +47,6 @@ DESCRIPTION
 variable "resource_group_name" {
   type        = string
   description = "The resource group where the resources will be deployed."
-}
-
-# Direct AKS/Kubernetes backup configuration variables
-variable "backup_datasource_parameters" {
-  type = object({
-    excluded_namespaces              = optional(list(string), [])
-    included_namespaces              = optional(list(string), [])
-    excluded_resource_types          = optional(list(string), [])
-    included_resource_types          = optional(list(string), [])
-    label_selectors                  = optional(list(string), [])
-    cluster_scoped_resources_enabled = optional(bool, false)
-    volume_snapshot_enabled          = optional(bool, false)
-  })
-  default     = null
-  description = "Configuration for Kubernetes backup datasource parameters."
 }
 
 # Backup Instances Configuration
@@ -220,12 +207,6 @@ DESCRIPTION
   }
 }
 
-variable "backup_repeating_time_intervals" {
-  type        = list(string)
-  default     = []
-  description = "List of repeating time intervals for scheduling backups."
-}
-
 variable "cross_region_restore_enabled" {
   type        = bool
   default     = false
@@ -258,15 +239,6 @@ A map describing customer-managed keys to associate with the resource. This incl
 - `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
   - `resource_id` - The resource ID of the user-assigned identity.
 DESCRIPTION
-}
-
-variable "default_retention_life_cycle" {
-  type = object({
-    data_store_type = optional(string, "OperationalStore")
-    duration        = optional(string, "P14D")
-  })
-  default     = null
-  description = "Default retention life cycle configuration for AKS backups."
 }
 
 variable "diagnostic_settings" {
@@ -341,39 +313,6 @@ variable "immutability" {
     condition     = contains(["Disabled", "Locked", "Unlocked"], var.immutability)
     error_message = "immutability must be one of: Disabled, Locked, Unlocked."
   }
-}
-
-variable "kubernetes_backup_instance_name" {
-  type        = string
-  default     = null
-  description = "Name for the AKS backup instance when using direct configuration."
-}
-
-variable "kubernetes_backup_policy_name" {
-  type        = string
-  default     = null
-  description = "Name for the AKS backup policy when using direct configuration."
-}
-
-variable "kubernetes_cluster_id" {
-  type        = string
-  default     = null
-  description = "Resource ID of the AKS cluster to back up when using direct configuration."
-}
-
-variable "kubernetes_retention_rules" {
-  type = list(object({
-    name              = string
-    priority          = number
-    absolute_criteria = optional(string)
-    days_of_week      = optional(list(string))
-    months_of_year    = optional(list(string))
-    weeks_of_month    = optional(list(string))
-    data_store_type   = optional(string, "OperationalStore")
-    duration          = string
-  }))
-  default     = []
-  description = "List of retention rules for AKS backups when using direct configuration."
 }
 
 variable "lock" {
@@ -453,12 +392,6 @@ variable "role_assignments" {
   nullable    = false
 }
 
-variable "snapshot_resource_group_name" {
-  type        = string
-  default     = null
-  description = "Resource group name for AKS volume snapshots when using direct configuration."
-}
-
 variable "soft_delete" {
   type        = string
   default     = "Off"
@@ -478,12 +411,6 @@ variable "tags" {
   type        = map(string)
   default     = null
   description = "(Optional) Tags of the resource."
-}
-
-variable "time_zone" {
-  type        = string
-  default     = "UTC"
-  description = "Time zone for backup scheduling when using direct configuration."
 }
 
 # Timeouts Configuration
