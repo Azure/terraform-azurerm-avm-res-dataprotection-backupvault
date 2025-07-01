@@ -7,8 +7,6 @@ locals {
   disk_instances = { for k, v in var.backup_instances : k => v if v.type == "disk" }
   # Organize backup policies by type
   disk_policies                      = { for k, v in var.backup_policies : k => v if v.type == "disk" }
-  kubernetes_instances               = { for k, v in var.backup_instances : k => v if v.type == "kubernetes" }
-  kubernetes_policies                = { for k, v in var.backup_policies : k => v if v.type == "kubernetes" }
   postgresql_flexible_instances      = { for k, v in var.backup_instances : k => v if v.type == "postgresql_flexible" }
   postgresql_flexible_policies       = { for k, v in var.backup_policies : k => v if v.type == "postgresql_flexible" }
   postgresql_instances               = { for k, v in var.backup_instances : k => v if v.type == "postgresql" }
