@@ -73,10 +73,10 @@ resource "azurerm_data_protection_backup_vault" "this" {
   tags                         = var.tags
 
   dynamic "identity" {
-    for_each = var.managed_identities.system_assigned || length(var.managed_identities.user_assigned_resource_ids) > 0 ? [1] : []
+    for_each = var.identity_enabled ? [1] : []
 
     content {
-      type = var.managed_identities.system_assigned && length(var.managed_identities.user_assigned_resource_ids) > 0 ? "SystemAssigned, UserAssigned" : var.managed_identities.system_assigned ? "SystemAssigned" : "UserAssigned"
+      type = "SystemAssigned"
     }
   }
 

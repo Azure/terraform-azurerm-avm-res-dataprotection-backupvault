@@ -117,6 +117,26 @@ Type: `string`
 
 The following input variables are optional (have default values):
 
+### <a name="input_backup_datasource_parameters"></a> [backup\_datasource\_parameters](#input\_backup\_datasource\_parameters)
+
+Description: Configuration for Kubernetes backup datasource parameters.
+
+Type:
+
+```hcl
+object({
+    excluded_namespaces              = optional(list(string), [])
+    included_namespaces              = optional(list(string), [])
+    excluded_resource_types          = optional(list(string), [])
+    included_resource_types          = optional(list(string), [])
+    label_selectors                  = optional(list(string), [])
+    cluster_scoped_resources_enabled = optional(bool, false)
+    volume_snapshot_enabled          = optional(bool, false)
+  })
+```
+
+Default: `null`
+
 ### <a name="input_backup_instances"></a> [backup\_instances](#input\_backup\_instances)
 
 Description: Map of backup instances to create. Each instance references a backup policy via backup\_policy\_key.
@@ -242,6 +262,14 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_backup_repeating_time_intervals"></a> [backup\_repeating\_time\_intervals](#input\_backup\_repeating\_time\_intervals)
+
+Description: List of repeating time intervals for scheduling backups.
+
+Type: `list(string)`
+
+Default: `[]`
+
 ### <a name="input_cross_region_restore_enabled"></a> [cross\_region\_restore\_enabled](#input\_cross\_region\_restore\_enabled)
 
 Description: Whether to enable cross-region restore for the Backup Vault. Can only be enabled with GeoRedundant redundancy.
@@ -269,6 +297,21 @@ object({
     user_assigned_identity = optional(object({
       resource_id = string
     }), null)
+  })
+```
+
+Default: `null`
+
+### <a name="input_default_retention_life_cycle"></a> [default\_retention\_life\_cycle](#input\_default\_retention\_life\_cycle)
+
+Description: Default retention life cycle configuration for AKS backups.
+
+Type:
+
+```hcl
+object({
+    data_store_type = optional(string, "OperationalStore")
+    duration        = optional(string, "P14D")
   })
 ```
 
@@ -318,6 +361,14 @@ Type: `bool`
 
 Default: `true`
 
+### <a name="input_identity_enabled"></a> [identity\_enabled](#input\_identity\_enabled)
+
+Description: Whether to enable system-assigned managed identity for the backup vault.
+
+Type: `bool`
+
+Default: `false`
+
 ### <a name="input_immutability"></a> [immutability](#input\_immutability)
 
 Description: Immutability state: Disabled, Locked, or Unlocked.
@@ -325,6 +376,51 @@ Description: Immutability state: Disabled, Locked, or Unlocked.
 Type: `string`
 
 Default: `"Disabled"`
+
+### <a name="input_kubernetes_backup_instance_name"></a> [kubernetes\_backup\_instance\_name](#input\_kubernetes\_backup\_instance\_name)
+
+Description: Name for the AKS backup instance when using direct configuration.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_kubernetes_backup_policy_name"></a> [kubernetes\_backup\_policy\_name](#input\_kubernetes\_backup\_policy\_name)
+
+Description: Name for the AKS backup policy when using direct configuration.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_kubernetes_cluster_id"></a> [kubernetes\_cluster\_id](#input\_kubernetes\_cluster\_id)
+
+Description: Resource ID of the AKS cluster to back up when using direct configuration.
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_kubernetes_retention_rules"></a> [kubernetes\_retention\_rules](#input\_kubernetes\_retention\_rules)
+
+Description: List of retention rules for AKS backups when using direct configuration.
+
+Type:
+
+```hcl
+list(object({
+    name              = string
+    priority          = number
+    absolute_criteria = optional(string)
+    days_of_week      = optional(list(string))
+    months_of_year    = optional(list(string))
+    weeks_of_month    = optional(list(string))
+    data_store_type   = optional(string, "OperationalStore")
+    duration          = string
+  }))
+```
+
+Default: `[]`
 
 ### <a name="input_lock"></a> [lock](#input\_lock)
 
@@ -418,6 +514,14 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_snapshot_resource_group_name"></a> [snapshot\_resource\_group\_name](#input\_snapshot\_resource\_group\_name)
+
+Description: Resource group name for AKS volume snapshots when using direct configuration.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_soft_delete"></a> [soft\_delete](#input\_soft\_delete)
 
 Description: The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to On.  
@@ -434,6 +538,14 @@ Description: (Optional) Tags of the resource.
 Type: `map(string)`
 
 Default: `null`
+
+### <a name="input_time_zone"></a> [time\_zone](#input\_time\_zone)
+
+Description: Time zone for backup scheduling when using direct configuration.
+
+Type: `string`
+
+Default: `"UTC"`
 
 ### <a name="input_timeout_create"></a> [timeout\_create](#input\_timeout\_create)
 
