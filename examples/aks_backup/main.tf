@@ -1,5 +1,6 @@
 terraform {
   required_version = ">= 1.7.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -46,7 +47,6 @@ resource "azurerm_kubernetes_cluster" "example" {
 
   default_node_pool {
     name                        = "default"
-    vm_size                     = "Standard_D4s_v3"
     auto_scaling_enabled        = true
     max_count                   = 9
     min_count                   = 3
@@ -54,6 +54,7 @@ resource "azurerm_kubernetes_cluster" "example" {
     os_disk_type                = "Managed"
     temporary_name_for_rotation = "tempnodepool"
     type                        = "VirtualMachineScaleSets"
+    vm_size                     = "Standard_D4s_v3"
     zones                       = ["1", "3"]
 
     upgrade_settings {

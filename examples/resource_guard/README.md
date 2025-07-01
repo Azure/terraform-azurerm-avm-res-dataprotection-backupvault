@@ -6,6 +6,7 @@ This example demonstrates how to deploy Azure Data Protection Backup Vault with 
 ```hcl
 terraform {
   required_version = ">= 1.7.0"
+
   required_providers {
     azapi = {
       source  = "azure/azapi"

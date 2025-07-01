@@ -47,42 +47,161 @@ variable "resource_group_name" {
   description = "The resource group where the resources will be deployed."
 }
 
-# Backup policy ID
-variable "backup_policy_id" {
-  type        = string
-  default     = null
-  description = "The ID of the Backup Policy that applies to the Backup Instance Blob Storage."
-}
+# Backup Instances Configuration
+variable "backup_instances" {
+  type = map(object({
+    type              = string # "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+    name              = string
+    backup_policy_key = string # References key from backup_policies map
 
-variable "backup_policy_name" {
-  type        = string
-  default     = null
-  description = "The name which should be used for this Backup Policy Blob Storage."
-}
+    # Disk-specific settings
+    disk_id                      = optional(string)
+    snapshot_resource_group_name = optional(string)
 
-# Backup Policy Variables for Disk
-variable "backup_repeating_time_intervals" {
-  type        = list(string)
-  default     = []
-  description = "The repeating time intervals for disk backup policy in ISO8601 format (e.g., ['R/2024-01-01T00:00:00Z/P1D'])."
+    # Blob-specific settings
+    storage_account_id              = optional(string)
+    storage_account_container_names = optional(list(string), [])
+
+    # AKS-specific settings
+    kubernetes_cluster_id = optional(string)
+    backup_datasource_parameters = optional(object({
+      excluded_namespaces              = optional(list(string), [])
+      included_namespaces              = optional(list(string), [])
+      excluded_resource_types          = optional(list(string), [])
+      included_resource_types          = optional(list(string), [])
+      label_selectors                  = optional(list(string), [])
+      cluster_scoped_resources_enabled = optional(bool, false)
+      volume_snapshot_enabled          = optional(bool, false)
+    }))
+
+    # PostgreSQL-specific settings
+    postgresql_server_id           = optional(string)
+    postgresql_database_id         = optional(string)
+    postgresql_key_vault_secret_id = optional(string)
+
+    # PostgreSQL Flexible-specific settings
+    postgresql_flexible_server_id           = optional(string)
+    postgresql_flexible_database_id         = optional(string)
+    postgresql_flexible_key_vault_secret_id = optional(string)
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+Map of backup instances to create. Each instance references a backup policy via backup_policy_key.
+
+Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+
+Common settings:
+- name: Display name for the backup instance
+- backup_policy_key: Reference to a key in backup_policies map
+
+Type-specific settings:
+- Disk: disk_id, snapshot_resource_group_name
+- Blob: storage_account_id, storage_account_container_names
+- AKS: kubernetes_cluster_id, backup_datasource_parameters
+- PostgreSQL: postgresql_server_id, postgresql_database_id, postgresql_key_vault_secret_id
+- PostgreSQL Flexible: postgresql_flexible_server_id, postgresql_flexible_database_id, postgresql_flexible_key_vault_secret_id
+DESCRIPTION
 
   validation {
-    condition = (
-      var.disk_backup_instance_name == null || length(var.backup_repeating_time_intervals) > 0
-    )
-    error_message = "backup_repeating_time_intervals must be provided (length > 0) if disk_backup_instance_name is set."
+    condition = alltrue([
+      for instance in var.backup_instances :
+      contains(["disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"], instance.type)
+    ])
+    error_message = "All backup instances must have a valid type: disk, blob, kubernetes, postgresql, or postgresql_flexible."
+  }
+  validation {
+    condition = alltrue([
+      for instance in var.backup_instances :
+      contains(keys(var.backup_policies), instance.backup_policy_key)
+    ])
+    error_message = "All backup instances must reference existing backup policy keys from the backup_policies variable."
+  }
+  validation {
+    condition = alltrue([
+      for instance in var.backup_instances :
+      contains(keys(var.backup_policies), instance.backup_policy_key) ?
+      var.backup_policies[instance.backup_policy_key].type == instance.type :
+      true
+    ])
+    error_message = "All backup instances must have the same type as their referenced backup policy."
+  }
+  validation {
+    condition = alltrue([
+      for instance in var.backup_instances :
+      length(instance.name) >= 5 && length(instance.name) <= 50
+    ])
+    error_message = "All backup instance names must be between 5 and 50 characters long."
   }
 }
 
-# Name for the Backup Instance Blob Storage
-variable "blob_backup_instance_name" {
-  type        = string
-  default     = null
-  description = "The name of the Backup Instance Blob Storage."
+# Backup Policies Configuration
+variable "backup_policies" {
+  type = map(object({
+    type = string # "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+    name = string
+
+    # Common policy settings
+    backup_repeating_time_intervals = optional(list(string), [])
+    default_retention_duration      = optional(string, "P30D")
+    time_zone                       = optional(string, "UTC")
+
+    # Disk-specific settings
+    # (all settings are shared with other types for consistency)
+
+    # Blob-specific settings
+    operational_default_retention_duration = optional(string)
+    vault_default_retention_duration       = optional(string)
+
+    # AKS-specific settings
+    default_retention_life_cycle = optional(object({
+      data_store_type = optional(string, "OperationalStore")
+      duration        = optional(string, "P14D")
+    }))
+
+    # Retention rules (common to all types)
+    retention_rules = optional(list(object({
+      name     = string
+      priority = number
+      duration = optional(string, "P30D")
+      criteria = list(object({
+        absolute_criteria      = optional(string)
+        days_of_month          = optional(list(number))
+        days_of_week           = optional(list(string))
+        months_of_year         = optional(list(string))
+        scheduled_backup_times = optional(list(string))
+        weeks_of_month         = optional(list(string))
+      }))
+      # Life cycle (for blob policies)
+      life_cycle = optional(list(object({
+        data_store_type = string
+        duration        = string
+      })), [])
+    })), [])
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+Map of backup policies to create. Each policy can be referenced by backup instances.
+Key is used as reference identifier for backup instances.
+
+Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+
+Common settings:
+- backup_repeating_time_intervals: List of ISO8601 backup schedule intervals
+- default_retention_duration: Default retention period in ISO8601 format
+- time_zone: Time zone for backup schedules
+- retention_rules: List of retention rules with criteria and lifecycle
+
+Type-specific settings:
+- Blob: operational_default_retention_duration, vault_default_retention_duration
+- AKS: default_retention_life_cycle with data_store_type and duration
+DESCRIPTION
 
   validation {
-    condition     = var.blob_backup_instance_name != null ? (length(var.blob_backup_instance_name) >= 5 && length(var.blob_backup_instance_name) <= 50) : true
-    error_message = "The name must be between 5 and 50 characters long if provided."
+    condition = alltrue([
+      for policy in var.backup_policies :
+      contains(["disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"], policy.type)
+    ])
+    error_message = "All backup policies must have a valid type: disk, blob, kubernetes, postgresql, or postgresql_flexible."
   }
 }
 
@@ -118,24 +237,6 @@ A map describing customer-managed keys to associate with the resource. This incl
 - `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
   - `resource_id` - The resource ID of the user-assigned identity.
 DESCRIPTION  
-}
-
-variable "default_retention_duration" {
-  type        = string
-  default     = null
-  description = "The duration of the default retention rule in ISO 8601 format."
-}
-
-variable "default_retention_life_cycle" {
-  type = object({
-    data_store_type = string
-    duration        = string
-  })
-  default = {
-    data_store_type = "OperationalStore"
-    duration        = "P14D" # 14 days is a good default
-  }
-  description = "The lifecycle configuration for default retention rule."
 }
 
 variable "diagnostic_settings" {
@@ -183,24 +284,7 @@ DESCRIPTION
   }
 }
 
-# Disk Backup Instance Variables
-variable "disk_backup_instance_name" {
-  type        = string
-  default     = null
-  description = "The name of the Backup Instance Disk."
-
-  validation {
-    condition     = var.disk_backup_instance_name != null ? (length(var.disk_backup_instance_name) >= 5 && length(var.disk_backup_instance_name) <= 50) : true
-    error_message = "The name must be between 5 and 50 characters long if provided."
-  }
-}
-
-variable "disk_id" {
-  type        = string
-  default     = null
-  description = "The ID of the source Disk for Backup."
-}
-
+# Enable telemetry for the module
 variable "enable_telemetry" {
   type        = bool
   default     = true
@@ -264,12 +348,6 @@ DESCRIPTION
   nullable    = false
 }
 
-variable "operational_default_retention_duration" {
-  type        = string
-  default     = null
-  description = "The duration of operational default retention rule in ISO 8601 format."
-}
-
 variable "retention_duration_in_days" {
   type        = number
   default     = 14
@@ -281,28 +359,6 @@ DESCRIPTION
     condition     = var.retention_duration_in_days >= 14 && var.retention_duration_in_days <= 180
     error_message = "retention_duration_in_days must be between 14 and 180."
   }
-}
-
-variable "retention_rules" {
-  type = list(object({
-    name     = string
-    duration = optional(string, null) # Make duration optional to support both cases
-    priority = number
-    criteria = list(object({
-      absolute_criteria      = string
-      days_of_month          = optional(list(number), null)
-      days_of_week           = optional(list(string), null)
-      months_of_year         = optional(list(string), null)
-      scheduled_backup_times = optional(list(string), null)
-      weeks_of_month         = optional(list(string), null)
-    }))
-    life_cycle = optional(list(object({
-      data_store_type = string
-      duration        = string
-    })), [])
-  }))
-  default     = []
-  description = "List of retention rules for the backup policy. Optional, can be left as an empty list."
 }
 
 variable "role_assignments" {
@@ -334,12 +390,6 @@ variable "role_assignments" {
   nullable    = false
 }
 
-variable "snapshot_resource_group_name" {
-  type        = string
-  default     = null
-  description = "The name of the Resource Group where snapshots are stored."
-}
-
 variable "soft_delete" {
   type        = string
   default     = "Off"
@@ -354,25 +404,6 @@ DESCRIPTION
   }
 }
 
-# List of container names (optional)
-variable "storage_account_container_names" {
-  type        = list(string)
-  default     = []
-  description = "Optional list of container names in the source Storage Account."
-}
-
-# Storage account ID
-variable "storage_account_id" {
-  type        = string
-  default     = null
-  description = "The ID of the source Storage Account for the Backup Instance."
-
-  validation {
-    condition     = var.storage_account_id != null ? can(regex("^/subscriptions/[a-zA-Z0-9-]+/resourceGroups/[a-zA-Z0-9-_]+/providers/Microsoft.Storage/storageAccounts/[a-z0-9]+$", var.storage_account_id)) : true
-    error_message = "The storage_account_id must be a valid Azure resource ID for a storage account."
-  }
-}
-
 # tflint-ignore: terraform_unused_declarations
 variable "tags" {
   type        = map(string)
@@ -380,39 +411,27 @@ variable "tags" {
   description = "(Optional) Tags of the resource."
 }
 
-variable "time_zone" {
-  type        = string
-  default     = null
-  description = "Specifies the Time Zone which should be used by the backup schedule."
-}
-
-# Timeouts (Optional)
+# Timeouts Configuration
 variable "timeout_create" {
   type        = string
   default     = "30m"
-  description = "The timeout duration for creating the Backup Instance Blob Storage."
+  description = "The timeout duration for creating resources."
 }
 
 variable "timeout_delete" {
   type        = string
   default     = "30m"
-  description = "The timeout duration for deleting the Backup Instance Blob Storage."
+  description = "The timeout duration for deleting resources."
 }
 
 variable "timeout_read" {
   type        = string
   default     = "5m"
-  description = "The timeout duration for reading the Backup Instance Blob Storage."
+  description = "The timeout duration for reading resources."
 }
 
 variable "timeout_update" {
   type        = string
   default     = "30m"
-  description = "The timeout duration for updating the Backup Instance Blob Storage."
-}
-
-variable "vault_default_retention_duration" {
-  type        = string
-  default     = null
-  description = "The duration of vault default retention rule in ISO 8601 format."
+  description = "The timeout duration for updating resources."
 }

@@ -6,6 +6,7 @@ This example demonstrates how to deploy the `azurerm_data_protection_backup_vaul
 ```hcl
 terraform {
   required_version = ">= 1.7.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"

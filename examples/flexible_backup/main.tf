@@ -27,7 +27,7 @@ module "naming" {
   version = "~> 0.3"
 
   prefix = ["avm"]
-  suffix = ["demo"]
+  suffix = ["flexible"]
 }
 
 # Resource Group
@@ -50,20 +50,6 @@ resource "azurerm_log_analytics_workspace" "example" {
   sku                 = "PerGB2018"
 }
 
-# Managed Disk
-resource "azurerm_managed_disk" "example" {
-  create_option        = "Empty"
-  location             = azurerm_resource_group.example.location
-  name                 = "${module.naming.managed_disk.name_unique}-disk"
-  resource_group_name  = azurerm_resource_group.example.name
-  storage_account_type = "Premium_LRS"
-  disk_size_gb         = 64
-  tags = {
-    Environment = "Demo"
-    Purpose     = "Disk Backup"
-  }
-}
-
 # Snapshot Resource Group
 resource "azurerm_resource_group" "snapshots" {
   location = azurerm_resource_group.example.location
@@ -71,6 +57,34 @@ resource "azurerm_resource_group" "snapshots" {
   tags = {
     Environment = "Demo"
     Purpose     = "Disk Snapshots"
+  }
+}
+
+# First Managed Disk (Primary/Production)
+resource "azurerm_managed_disk" "example" {
+  create_option        = "Empty"
+  location             = azurerm_resource_group.example.location
+  name                 = "${module.naming.managed_disk.name_unique}-primary"
+  resource_group_name  = azurerm_resource_group.example.name
+  storage_account_type = "Premium_LRS"
+  disk_size_gb         = 64
+  tags = {
+    Environment = "Demo"
+    Purpose     = "Production Disk"
+  }
+}
+
+# Second Managed Disk (Secondary/Development)
+resource "azurerm_managed_disk" "database" {
+  create_option        = "Empty"
+  location             = azurerm_resource_group.example.location
+  name                 = "${module.naming.managed_disk.name_unique}-secondary"
+  resource_group_name  = azurerm_resource_group.example.name
+  storage_account_type = "Standard_LRS"
+  disk_size_gb         = 32
+  tags = {
+    Environment = "Demo"
+    Purpose     = "Development Disk"
   }
 }
 
@@ -83,24 +97,36 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  # Define backup instance that references policy
+  # Define multiple backup instances that reference policies
   backup_instances = {
-    "disk-instance" = {
+    # Production disk instance
+    "production-disk" = {
       type                         = "disk"
-      name                         = "${module.naming.recovery_services_vault.name_unique}-disk-instance"
-      backup_policy_key            = "disk-daily"
+      name                         = "${module.naming.recovery_services_vault.name_unique}-prod-instance"
+      backup_policy_key            = "production-daily"
       disk_id                      = azurerm_managed_disk.example.id
+      snapshot_resource_group_name = azurerm_resource_group.snapshots.name
+    },
+
+    # Development disk instance
+    "development-disk" = {
+      type                         = "disk"
+      name                         = "${module.naming.recovery_services_vault.name_unique}-dev-instance"
+      backup_policy_key            = "development-weekly"
+      disk_id                      = azurerm_managed_disk.database.id
       snapshot_resource_group_name = azurerm_resource_group.snapshots.name
     }
   }
-  # Define backup policy
+  # Define multiple backup policies independently
   backup_policies = {
-    "disk-daily" = {
-      type                            = "disk"
-      name                            = "${module.naming.recovery_services_vault.name_unique}-disk-policy"
-      backup_repeating_time_intervals = ["R/2025-01-01T00:00:00+00:00/P1D"]
-      default_retention_duration      = "P30D"
-      time_zone                       = "UTC"
+    # Production disk policy - daily backups with long retention
+    "production-daily" = {
+      type                                   = "disk"
+      name                                   = "${module.naming.recovery_services_vault.name_unique}-prod-policy"
+      backup_repeating_time_intervals        = ["R/2025-01-01T00:00:00+00:00/P1D"]
+      default_retention_duration             = "P7D"
+      operational_default_retention_duration = "P30D"
+      time_zone                              = "UTC"
       retention_rules = [
         {
           name     = "Daily"
@@ -119,6 +145,16 @@ module "backup_vault" {
           }]
         }
       ]
+    },
+
+    # Development disk policy - weekly backups
+    "development-weekly" = {
+      type                                   = "disk"
+      name                                   = "${module.naming.recovery_services_vault.name_unique}-dev-policy"
+      backup_repeating_time_intervals        = ["R/2025-01-01T00:00:00+00:00/P1W"]
+      default_retention_duration             = "P30D"
+      operational_default_retention_duration = "P14D"
+      time_zone                              = "UTC"
     }
   }
   # Configure diagnostic settings
@@ -133,8 +169,6 @@ module "backup_vault" {
   }
   enable_telemetry = true
   immutability     = "Disabled"
-  lock             = null
-  # Configure managed identity
   managed_identities = {
     system_assigned = true
   }
@@ -147,9 +181,15 @@ module "backup_vault" {
 }
 
 # Create role assignments outside the module to avoid circular dependencies
-resource "azurerm_role_assignment" "disk_backup_reader" {
+resource "azurerm_role_assignment" "disk_backup_reader_primary" {
   principal_id         = module.backup_vault.identity_principal_id
   scope                = azurerm_managed_disk.example.id
+  role_definition_name = "Disk Backup Reader"
+}
+
+resource "azurerm_role_assignment" "disk_backup_reader_secondary" {
+  principal_id         = module.backup_vault.identity_principal_id
+  scope                = azurerm_managed_disk.database.id
   role_definition_name = "Disk Backup Reader"
 }
 
