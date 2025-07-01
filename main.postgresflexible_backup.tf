@@ -28,8 +28,8 @@ resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "thi
         weeks_of_month         = retention_rule.value.criteria[0].weeks_of_month
       }
       life_cycle {
-        data_store_type = coalesce(retention_rule.value.life_cycle[0].data_store_type, "VaultStore")
-        duration        = retention_rule.value.life_cycle[0].duration
+        data_store_type = length(retention_rule.value.life_cycle) > 0 && try(retention_rule.value.life_cycle[0].data_store_type, null) != null ? retention_rule.value.life_cycle[0].data_store_type : "VaultStore"
+        duration        = length(retention_rule.value.life_cycle) > 0 && try(retention_rule.value.life_cycle[0].duration, null) != null ? retention_rule.value.life_cycle[0].duration : each.value.default_retention_duration
       }
     }
   }

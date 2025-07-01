@@ -88,30 +88,80 @@ module "backup_vault" {
   name                = "backup-vault-postgresql"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  # Inputs for PostgreSQL backup policy and backup instance
-  backup_policy_name              = "${module.naming.postgresql_server.name_unique}-backup-policy"
-  backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
-  default_retention_duration      = "P4M"
-  enable_telemetry                = true
-  identity_enabled                = true
-  postgresql_backup_instance_name = "${module.naming.postgresql_database.name_unique}-instance"
-  postgresql_database_id          = azurerm_postgresql_database.example.id
-  retention_rules = [
-    {
-      name     = "Daily"
-      duration = "P7D"
-      priority = 25
-      criteria = [{ absolute_criteria = "FirstOfDay" }]
+  # Map-based configuration for PostgreSQL backup instances
+  backup_instances = {
+    postgresql = {
+      type                           = "postgresql"
+      name                           = "${module.naming.postgresql_database.name_unique}-instance"
+      backup_policy_key              = "postgresql"
+      postgresql_database_id         = azurerm_postgresql_database.example.id
+      postgresql_key_vault_secret_id = azurerm_key_vault_secret.postgres_password.id
     }
-  ]
+  }
+  # Map-based configuration for PostgreSQL backup policies
+  backup_policies = {
+    postgresql = {
+      type                            = "postgresql"
+      name                            = "${module.naming.postgresql_server.name_unique}-backup-policy"
+      backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+      default_retention_duration      = "P4M"
+      retention_rules = [
+        {
+          name     = "Daily"
+          duration = "P7D"
+          priority = 25
+          criteria = [{ absolute_criteria = "FirstOfDay" }]
+        }
+      ]
+    }
+  }
+  enable_telemetry = true
+  # System-assigned identity is required for role assignments
+  managed_identities = {
+    system_assigned = true
+  }
   role_assignments = {
     postgresql_Contributor = {
-      principal_id               = module.backup_vault.identity_principal_id
+      principal_id               = "system-assigned"
       role_definition_id_or_name = "Contributor"
       scope                      = azurerm_postgresql_server.example.id
     }
+    key_vault_secrets_user = {
+      principal_id               = "system-assigned"
+      role_definition_id_or_name = "Key Vault Secrets User"
+      scope                      = azurerm_key_vault.example.id
+    }
   }
 }
+
+# Create a Key Vault to store PostgreSQL credentials
+resource "azurerm_key_vault" "example" {
+  location                   = azurerm_resource_group.example.location
+  name                       = "${module.naming.key_vault.name_unique}-kv"
+  resource_group_name        = azurerm_resource_group.example.name
+  sku_name                   = "standard"
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  purge_protection_enabled   = false
+  soft_delete_retention_days = 7
+
+  access_policy {
+    object_id = data.azurerm_client_config.current.object_id
+    secret_permissions = [
+      "Get", "List", "Set", "Delete", "Purge"
+    ]
+    tenant_id = data.azurerm_client_config.current.tenant_id
+  }
+}
+
+# Store PostgreSQL admin credentials in Key Vault
+resource "azurerm_key_vault_secret" "postgres_password" {
+  key_vault_id = azurerm_key_vault.example.id
+  name         = "postgres-admin-password"
+  value        = random_password.postgres_password.result
+}
+
+# Get current client config for Key Vault access policy
+data "azurerm_client_config" "current" {}
 
 ```
 
@@ -130,11 +180,14 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azurerm_key_vault.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault) (resource)
+- [azurerm_key_vault_secret.postgres_password](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret) (resource)
 - [azurerm_postgresql_database.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/postgresql_database) (resource)
 - [azurerm_postgresql_server.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/postgresql_server) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 - [random_password.postgres_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) (resource)
+- [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs

@@ -361,6 +361,14 @@ Type: `bool`
 
 Default: `true`
 
+### <a name="input_identity_enabled"></a> [identity\_enabled](#input\_identity\_enabled)
+
+Description: Whether to enable system-assigned managed identity for the backup vault.
+
+Type: `bool`
+
+Default: `false`
+
 ### <a name="input_immutability"></a> [immutability](#input\_immutability)
 
 Description: Immutability state: Disabled, Locked, or Unlocked.

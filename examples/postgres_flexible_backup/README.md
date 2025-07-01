@@ -95,31 +95,46 @@ module "backup_vault" {
   name                = "backup-vault-postgresql-flex"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  # Inputs for PostgreSQL Flexible backup policy and backup instance
-  backup_policy_name                       = "${module.naming.postgresql_server.name_unique}-backup-policy"
-  backup_repeating_time_intervals          = ["R/2024-09-17T06:33:16+00:00/PT4H"]
-  default_retention_duration               = "P4M"
-  enable_telemetry                         = true
-  identity_enabled                         = true
-  postgresql_flexible_backup_instance_name = "${module.naming.postgresql_server.name_unique}-postgresflex-instance"
-  postgresql_flexible_server_id            = azurerm_postgresql_flexible_server.example.id != "" ? azurerm_postgresql_flexible_server.example.id : null
-  retention_rules = [
-    {
-      name     = "Daily"
-      duration = "P7D"
-      priority = 25
-      criteria = [{ absolute_criteria = "FirstOfDay" }]
+  backup_instances = {
+    postgresqlflex = {
+      type                          = "postgresql_flexible"
+      name                          = "${module.naming.postgresql_server.name_unique}-postgresflex-instance"
+      backup_policy_key             = "postgresqlflex"
+      postgresql_flexible_server_id = azurerm_postgresql_flexible_server.example.id
     }
-  ]
+  }
+  backup_policies = {
+    postgresqlflex = {
+      type                            = "postgresql_flexible"
+      name                            = "${module.naming.postgresql_server.name_unique}-backup-policy"
+      backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+      default_retention_duration      = "P4M"
+      retention_rules = [
+        {
+          name     = "Daily"
+          duration = "P7D"
+          priority = 25
+          criteria = [{ absolute_criteria = "FirstOfDay" }]
+        }
+      ]
+      time_zone = "UTC"
+    }
+  }
+  enable_telemetry = true
+  managed_identities = {
+    system_assigned = true
+  }
+  # Role assignments using placeholder value that will be replaced by the module
+  # This avoids circular references while keeping assignments inside the module
   role_assignments = {
     postgresql_contributor = {
-      principal_id               = module.backup_vault.identity_principal_id
+      principal_id               = "system-assigned" # Special marker that the module will interpret
       role_definition_id_or_name = "Contributor"
       scope                      = azurerm_postgresql_flexible_server.example.id
       description                = "Allow backup vault identity to perform backup operations on PostgreSQL Flexible server"
     }
     resource_group_reader = {
-      principal_id               = module.backup_vault.identity_principal_id
+      principal_id               = "system-assigned" # Special marker that the module will interpret
       role_definition_id_or_name = "Reader"
       scope                      = azurerm_resource_group.example.id
       description                = "Allow backup vault identity to read resource group information"

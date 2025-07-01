@@ -328,6 +328,12 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "identity_enabled" {
+  type        = bool
+  default     = false
+  description = "Whether to enable system-assigned managed identity for the backup vault."
+}
+
 variable "immutability" {
   type        = string
   default     = "Disabled"
