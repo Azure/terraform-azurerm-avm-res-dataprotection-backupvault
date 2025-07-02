@@ -139,9 +139,6 @@ module "backup_vault" {
     duration        = "P14D"
   }
   enable_telemetry = true
-  managed_identities = {
-    system_assigned = true
-  }
   # AKS backup instance configuration
   kubernetes_backup_instance_name = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
   # AKS backup policy configuration
@@ -164,6 +161,9 @@ module "backup_vault" {
       duration          = "P365D"
     }
   ]
+  managed_identities = {
+    system_assigned = true
+  }
   snapshot_resource_group_name = azurerm_resource_group.snap.name
   time_zone                    = "UTC"
 

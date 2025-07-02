@@ -167,6 +167,9 @@ module "backup_vault" {
       duration          = "P365D"
     }
   ]
+  managed_identities = {
+    system_assigned = true
+  }
   snapshot_resource_group_name = azurerm_resource_group.snap.name
   time_zone                    = "UTC"
 

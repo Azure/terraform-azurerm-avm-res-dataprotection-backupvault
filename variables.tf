@@ -328,7 +328,6 @@ DESCRIPTION
   nullable    = false
 }
 
-
 variable "immutability" {
   type        = string
   default     = "Disabled"
