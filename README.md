@@ -83,7 +83,7 @@ The following input variables are required:
 
 ### <a name="input_datastore_type"></a> [datastore\_type](#input\_datastore\_type)
 
-Description: Specifies the type of the datastore. Changing this forces a new resource to be created.  
+Description: Specifies the type of the datastore. Changing this forces a new resource to be created.
 Valid options: ArchiveStore, OperationalStore, SnapshotStore, VaultStore.
 
 Type: `string`
@@ -102,7 +102,7 @@ Type: `string`
 
 ### <a name="input_redundancy"></a> [redundancy](#input\_redundancy)
 
-Description: Specifies the backup storage redundancy. Changing this forces a new resource to be created.  
+Description: Specifies the backup storage redundancy. Changing this forces a new resource to be created.
 Valid options: GeoRedundant, LocallyRedundant, ZoneRedundant.
 
 Type: `string`
@@ -198,7 +198,7 @@ Default: `{}`
 
 ### <a name="input_backup_policies"></a> [backup\_policies](#input\_backup\_policies)
 
-Description: Map of backup policies to create. Each policy can be referenced by backup instances.  
+Description: Map of backup policies to create. Each policy can be referenced by backup instances.
 Key is used as reference identifier for backup instances.
 
 Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql\_flexible"
@@ -353,21 +353,13 @@ Default: `{}`
 
 ### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
 
-Description: This variable controls whether or not telemetry is enabled for the module.  
-For more information see <https://aka.ms/avm/telemetryinfo>.  
+Description: This variable controls whether or not telemetry is enabled for the module.
+For more information see <https://aka.ms/avm/telemetryinfo>.
 If it is set to false, then no telemetry will be collected.
 
 Type: `bool`
 
 Default: `true`
-
-### <a name="input_identity_enabled"></a> [identity\_enabled](#input\_identity\_enabled)
-
-Description: Whether to enable system-assigned managed identity for the backup vault.
-
-Type: `bool`
-
-Default: `false`
 
 ### <a name="input_immutability"></a> [immutability](#input\_immutability)
 
@@ -524,7 +516,7 @@ Default: `null`
 
 ### <a name="input_soft_delete"></a> [soft\_delete](#input\_soft\_delete)
 
-Description: The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to On.  
+Description: The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to On.
 Once set to AlwaysOn, the setting cannot be changed.
 
 Type: `string`
@@ -581,8 +573,8 @@ Default: `"30m"`
 
 ### <a name="input_vault_critical_operation_exclusion_list"></a> [vault\_critical\_operation\_exclusion\_list](#input\_vault\_critical\_operation\_exclusion\_list)
 
-Description: A list of the critical operations which are not protected by Resource Guard.  
-By default, all critical operations are protected. Only exclude operations that you want to allow without additional protection.  
+Description: A list of the critical operations which are not protected by Resource Guard.
+By default, all critical operations are protected. Only exclude operations that you want to allow without additional protection.
 Possible values include: "Delete", "Update", "DisableSoftDelete", and "ChangeBackupProperties".
 
 Type: `list(string)`

@@ -145,7 +145,6 @@ module "backup_vault" {
     duration        = "P14D"
   }
   enable_telemetry = true
-  identity_enabled = true
   # AKS backup instance configuration
   kubernetes_backup_instance_name = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
   # AKS backup policy configuration
