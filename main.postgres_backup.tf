@@ -1,16 +1,16 @@
-# PostgreSQL Backup Policy
-resource "azurerm_data_protection_backup_policy_postgresql" "postgresql_backup_policy" {
-  count = var.postgresql_backup_instance_name != null ? 1 : 0
+# PostgreSQL Backup Policies
+resource "azurerm_data_protection_backup_policy_postgresql" "this" {
+  for_each = local.postgresql_policies
 
-  backup_repeating_time_intervals = var.backup_repeating_time_intervals
-  default_retention_duration      = var.default_retention_duration
-  name                            = var.name
+  backup_repeating_time_intervals = each.value.backup_repeating_time_intervals
+  default_retention_duration      = each.value.default_retention_duration
+  name                            = each.value.name
   resource_group_name             = var.resource_group_name
   vault_name                      = azurerm_data_protection_backup_vault.this.name
-  time_zone                       = var.time_zone
+  time_zone                       = coalesce(each.value.time_zone, "UTC")
 
   dynamic "retention_rule" {
-    for_each = var.retention_rules
+    for_each = each.value.retention_rules
 
     content {
       duration = retention_rule.value.duration
@@ -31,27 +31,29 @@ resource "azurerm_data_protection_backup_policy_postgresql" "postgresql_backup_p
     }
   }
   timeouts {
-    create = "30m"
-    delete = "30m"
-    read   = "5m"
-  }
-}
-
-# PostgreSQL Backup Instance
-resource "azurerm_data_protection_backup_instance_postgresql" "postgresql_backup_instance" {
-  count = var.postgresql_backup_instance_name != null ? 1 : 0
-
-  backup_policy_id                        = try(azurerm_data_protection_backup_policy_postgresql.postgresql_backup_policy[0].id, var.postgresql_backup_policy_id)
-  database_id                             = var.postgresql_database_id
-  location                                = var.location
-  name                                    = var.name
-  vault_id                                = azurerm_data_protection_backup_vault.this.id
-  database_credential_key_vault_secret_id = var.postgresql_key_vault_secret_id
-
-  timeouts {
     create = var.timeout_create
     delete = var.timeout_delete
     read   = var.timeout_read
-    update = var.timeout_update
+  }
+}
+
+# PostgreSQL Backup Instances
+resource "azurerm_data_protection_backup_instance_postgresql" "this" {
+  for_each = local.postgresql_instances
+
+  backup_policy_id                        = azurerm_data_protection_backup_policy_postgresql.this[each.value.backup_policy_key].id
+  database_id                             = each.value.postgresql_database_id
+  location                                = var.location
+  name                                    = each.value.name
+  vault_id                                = azurerm_data_protection_backup_vault.this.id
+  database_credential_key_vault_secret_id = each.value.postgresql_key_vault_secret_id
+
+  depends_on = [azurerm_data_protection_backup_policy_postgresql.this]
+
+  lifecycle {
+    precondition {
+      condition     = each.value.postgresql_database_id != null && each.value.postgresql_key_vault_secret_id != null
+      error_message = "Both postgresql_database_id and postgresql_key_vault_secret_id must be provided for PostgreSQL backup instance '${each.key}'."
+    }
   }
 }

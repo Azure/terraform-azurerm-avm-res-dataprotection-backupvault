@@ -1,21 +1,63 @@
-output "backup_policy_blob_storage_id" {
-  description = "The ID of the Blob Storage Backup Policy."
-  value       = var.blob_backup_instance_name != null && length(azurerm_data_protection_backup_policy_blob_storage.this) > 0 ? azurerm_data_protection_backup_policy_blob_storage.this[0].id : null
+# Identity Outputs
+
+# Backup Instance Outputs
+output "backup_instance_ids" {
+  description = "Map of backup instance IDs by instance key."
+  value = merge(
+    { for k, v in azurerm_data_protection_backup_instance_disk.this : k => v.id },
+    { for k, v in azurerm_data_protection_backup_instance_blob_storage.this : k => v.id },
+    { for k, v in azurerm_data_protection_backup_instance_kubernetes_cluster.this : k => v.id },
+    { for k, v in azurerm_data_protection_backup_instance_postgresql.this : k => v.id },
+    { for k, v in azurerm_data_protection_backup_instance_postgresql_flexible_server.this : k => v.id }
+  )
 }
 
-output "backup_policy_id" {
-  description = "The ID of the Backup Policy."
-  value       = var.blob_backup_instance_name != null && length(azurerm_data_protection_backup_policy_blob_storage.this) > 0 ? azurerm_data_protection_backup_policy_blob_storage.this[0].id : null
+# Backup Policy Outputs
+output "backup_policy_ids" {
+  description = "Map of backup policy IDs by policy key."
+  value = merge(
+    { for k, v in azurerm_data_protection_backup_policy_disk.this : k => v.id },
+    { for k, v in azurerm_data_protection_backup_policy_blob_storage.this : k => v.id },
+    { for k, v in azurerm_data_protection_backup_policy_kubernetes_cluster.this : k => v.id },
+    { for k, v in azurerm_data_protection_backup_policy_postgresql.this : k => v.id },
+    { for k, v in azurerm_data_protection_backup_policy_postgresql_flexible_server.this : k => v.id }
+  )
 }
 
+# Backup Vault Outputs
 output "backup_vault_id" {
   description = "The ID of the Backup Vault."
   value       = azurerm_data_protection_backup_vault.this.id
 }
 
+output "backup_vault_name" {
+  description = "The name of the Backup Vault."
+  value       = azurerm_data_protection_backup_vault.this.name
+}
+
 output "blob_backup_instance_id" {
-  description = "The ID of the Blob Backup Instance."
-  value       = var.blob_backup_instance_name != null && length(azurerm_data_protection_backup_instance_blob_storage.blob_backup_instance) > 0 ? azurerm_data_protection_backup_instance_blob_storage.blob_backup_instance[0].id : null
+  description = "(DEPRECATED) The ID of the Blob Backup Instance. Use backup_instance_ids instead."
+  value       = try(values(azurerm_data_protection_backup_instance_blob_storage.this)[0].id, null)
+}
+
+output "blob_backup_instance_ids" {
+  description = "Map of blob backup instance IDs by instance key."
+  value       = { for k, v in azurerm_data_protection_backup_instance_blob_storage.this : k => v.id }
+}
+
+output "blob_backup_policy_ids" {
+  description = "Map of blob backup policy IDs by policy key."
+  value       = { for k, v in azurerm_data_protection_backup_policy_blob_storage.this : k => v.id }
+}
+
+output "disk_backup_instance_ids" {
+  description = "Map of disk backup instance IDs by instance key."
+  value       = { for k, v in azurerm_data_protection_backup_instance_disk.this : k => v.id }
+}
+
+output "disk_backup_policy_ids" {
+  description = "Map of disk backup policy IDs by policy key."
+  value       = { for k, v in azurerm_data_protection_backup_policy_disk.this : k => v.id }
 }
 
 output "identity_principal_id" {
@@ -28,20 +70,50 @@ output "identity_tenant_id" {
   value       = try(azurerm_data_protection_backup_vault.this.identity[0].tenant_id, null)
 }
 
+output "kubernetes_backup_instance_ids" {
+  description = "Map of Kubernetes backup instance IDs by instance key."
+  value       = { for k, v in azurerm_data_protection_backup_instance_kubernetes_cluster.this : k => v.id }
+}
+
+output "kubernetes_backup_policy_ids" {
+  description = "Map of Kubernetes backup policy IDs by policy key."
+  value       = { for k, v in azurerm_data_protection_backup_policy_kubernetes_cluster.this : k => v.id }
+}
+
+# Management and Security Outputs
 output "lock_id" {
   description = "The resource ID of the management lock (if created)"
-  # if you used count = var.lock != null ? 1 : 0 on your lock:
-  value = try(azurerm_management_lock.this[0].id, "")
+  value       = try(azurerm_management_lock.this[0].id, "")
+}
+
+output "postgresql_backup_instance_ids" {
+  description = "Map of PostgreSQL backup instance IDs by instance key."
+  value       = { for k, v in azurerm_data_protection_backup_instance_postgresql.this : k => v.id }
+}
+
+output "postgresql_backup_policy_ids" {
+  description = "Map of PostgreSQL backup policy IDs by policy key."
+  value       = { for k, v in azurerm_data_protection_backup_policy_postgresql.this : k => v.id }
 }
 
 output "postgresql_flexible_backup_instance_id" {
-  description = "The ID of the created PostgreSQL Flexible Server Backup Instance."
-  value       = try(azurerm_data_protection_backup_instance_postgresql_flexible_server.postgresql_flexible_backup_instance[0].id, null)
+  description = "(DEPRECATED) The ID of the created PostgreSQL Flexible Server Backup Instance. Use backup_instance_ids instead."
+  value       = try(values(azurerm_data_protection_backup_instance_postgresql_flexible_server.this)[0].id, null)
+}
+
+output "postgresql_flexible_backup_instance_ids" {
+  description = "Map of PostgreSQL Flexible backup instance IDs by instance key."
+  value       = { for k, v in azurerm_data_protection_backup_instance_postgresql_flexible_server.this : k => v.id }
 }
 
 output "postgresql_flexible_backup_policy_id" {
-  description = "The ID of the created PostgreSQL Flexible Server Backup Policy."
-  value       = try(azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy[0].id, null)
+  description = "(DEPRECATED) The ID of the created PostgreSQL Flexible Server Backup Policy. Use backup_policy_ids instead."
+  value       = try(values(azurerm_data_protection_backup_policy_postgresql_flexible_server.this)[0].id, null)
+}
+
+output "postgresql_flexible_backup_policy_ids" {
+  description = "Map of PostgreSQL Flexible backup policy IDs by policy key."
+  value       = { for k, v in azurerm_data_protection_backup_policy_postgresql_flexible_server.this : k => v.id }
 }
 
 output "resource_guard_id" {
@@ -54,6 +126,7 @@ output "resource_guard_name" {
   value       = try(azurerm_data_protection_resource_guard.this[0].name, null)
 }
 
+# Alias outputs for consistency
 output "resource_id" {
   description = "The ID of the Backup Vault"
   value       = azurerm_data_protection_backup_vault.this.id

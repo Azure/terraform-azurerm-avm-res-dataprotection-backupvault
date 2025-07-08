@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
-# Disk Backup Example
+# Flexible Backup Vault Example
 
-This example demonstrates how to deploy the `azurerm_data_protection_backup_vault` module with a disk backup instance, backup policy, and managed disk for a comprehensive Azure managed disk backup solution.
+This example demonstrates a flexible backup vault architecture that supports independent management of backup policies and instances with many-to-many relationships for disk backups. I
 
 ```hcl
 terraform {
@@ -33,7 +33,7 @@ module "naming" {
   version = "~> 0.3"
 
   prefix = ["avm"]
-  suffix = ["demo"]
+  suffix = ["flexible"]
 }
 
 # Resource Group
@@ -56,20 +56,6 @@ resource "azurerm_log_analytics_workspace" "example" {
   sku                 = "PerGB2018"
 }
 
-# Managed Disk
-resource "azurerm_managed_disk" "example" {
-  create_option        = "Empty"
-  location             = azurerm_resource_group.example.location
-  name                 = "${module.naming.managed_disk.name_unique}-disk"
-  resource_group_name  = azurerm_resource_group.example.name
-  storage_account_type = "Premium_LRS"
-  disk_size_gb         = 64
-  tags = {
-    Environment = "Demo"
-    Purpose     = "Disk Backup"
-  }
-}
-
 # Snapshot Resource Group
 resource "azurerm_resource_group" "snapshots" {
   location = azurerm_resource_group.example.location
@@ -77,6 +63,34 @@ resource "azurerm_resource_group" "snapshots" {
   tags = {
     Environment = "Demo"
     Purpose     = "Disk Snapshots"
+  }
+}
+
+# First Managed Disk (Primary/Production)
+resource "azurerm_managed_disk" "example" {
+  create_option        = "Empty"
+  location             = azurerm_resource_group.example.location
+  name                 = "${module.naming.managed_disk.name_unique}-primary"
+  resource_group_name  = azurerm_resource_group.example.name
+  storage_account_type = "Premium_LRS"
+  disk_size_gb         = 64
+  tags = {
+    Environment = "Demo"
+    Purpose     = "Production Disk"
+  }
+}
+
+# Second Managed Disk (Secondary/Development)
+resource "azurerm_managed_disk" "database" {
+  create_option        = "Empty"
+  location             = azurerm_resource_group.example.location
+  name                 = "${module.naming.managed_disk.name_unique}-secondary"
+  resource_group_name  = azurerm_resource_group.example.name
+  storage_account_type = "Premium_LRS"
+  disk_size_gb         = 32
+  tags = {
+    Environment = "Demo"
+    Purpose     = "Development Disk"
   }
 }
 
@@ -89,24 +103,36 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  # Define backup instance that references policy
+  # Define multiple backup instances that reference policies
   backup_instances = {
-    "disk-instance" = {
+    # Production disk instance
+    "production-disk" = {
       type                         = "disk"
-      name                         = "${module.naming.recovery_services_vault.name_unique}-disk-instance"
-      backup_policy_key            = "disk-daily"
+      name                         = "${module.naming.recovery_services_vault.name_unique}-prod-instance"
+      backup_policy_key            = "production-daily"
       disk_id                      = azurerm_managed_disk.example.id
+      snapshot_resource_group_name = azurerm_resource_group.snapshots.name
+    },
+
+    # Development disk instance
+    "development-disk" = {
+      type                         = "disk"
+      name                         = "${module.naming.recovery_services_vault.name_unique}-dev-instance"
+      backup_policy_key            = "development-weekly"
+      disk_id                      = azurerm_managed_disk.database.id
       snapshot_resource_group_name = azurerm_resource_group.snapshots.name
     }
   }
-  # Define backup policy
+  # Define multiple backup policies independently
   backup_policies = {
-    "disk-daily" = {
-      type                            = "disk"
-      name                            = "${module.naming.recovery_services_vault.name_unique}-disk-policy"
-      backup_repeating_time_intervals = ["R/2025-01-01T00:00:00+00:00/P1D"]
-      default_retention_duration      = "P30D"
-      time_zone                       = "UTC"
+    # Production disk policy - daily backups with long retention
+    "production-daily" = {
+      type                                   = "disk"
+      name                                   = "${module.naming.recovery_services_vault.name_unique}-prod-policy"
+      backup_repeating_time_intervals        = ["R/2025-01-01T00:00:00+00:00/P1D"]
+      default_retention_duration             = "P7D"
+      operational_default_retention_duration = "P30D"
+      time_zone                              = "UTC"
       retention_rules = [
         {
           name     = "Daily"
@@ -125,6 +151,16 @@ module "backup_vault" {
           }]
         }
       ]
+    },
+
+    # Development disk policy - weekly backups
+    "development-weekly" = {
+      type                                   = "disk"
+      name                                   = "${module.naming.recovery_services_vault.name_unique}-dev-policy"
+      backup_repeating_time_intervals        = ["R/2025-01-01T00:00:00+00:00/P1W"]
+      default_retention_duration             = "P30D"
+      operational_default_retention_duration = "P14D"
+      time_zone                              = "UTC"
     }
   }
   # Configure diagnostic settings
@@ -139,8 +175,6 @@ module "backup_vault" {
   }
   enable_telemetry = true
   immutability     = "Disabled"
-  lock             = null
-  # Configure managed identity
   managed_identities = {
     system_assigned = true
   }
@@ -153,9 +187,15 @@ module "backup_vault" {
 }
 
 # Create role assignments outside the module to avoid circular dependencies
-resource "azurerm_role_assignment" "disk_backup_reader" {
+resource "azurerm_role_assignment" "disk_backup_reader_primary" {
   principal_id         = module.backup_vault.identity_principal_id
   scope                = azurerm_managed_disk.example.id
+  role_definition_name = "Disk Backup Reader"
+}
+
+resource "azurerm_role_assignment" "disk_backup_reader_secondary" {
+  principal_id         = module.backup_vault.identity_principal_id
+  scope                = azurerm_managed_disk.database.id
   role_definition_name = "Disk Backup Reader"
 }
 
@@ -180,10 +220,12 @@ The following requirements are needed by this module:
 The following resources are used by this module:
 
 - [azurerm_log_analytics_workspace.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
+- [azurerm_managed_disk.database](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/managed_disk) (resource)
 - [azurerm_managed_disk.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/managed_disk) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_resource_group.snapshots](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
-- [azurerm_role_assignment.disk_backup_reader](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
+- [azurerm_role_assignment.disk_backup_reader_primary](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
+- [azurerm_role_assignment.disk_backup_reader_secondary](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [azurerm_role_assignment.disk_snapshot_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 
 <!-- markdownlint-disable MD013 -->
@@ -197,7 +239,39 @@ No optional inputs.
 
 ## Outputs
 
-No outputs.
+The following outputs are exported:
+
+### <a name="output_backup_instance_ids"></a> [backup\_instance\_ids](#output\_backup\_instance\_ids)
+
+Description: Map of all backup instance IDs
+
+### <a name="output_backup_policy_ids"></a> [backup\_policy\_ids](#output\_backup\_policy\_ids)
+
+Description: Map of all backup policy IDs
+
+### <a name="output_backup_vault_id"></a> [backup\_vault\_id](#output\_backup\_vault\_id)
+
+Description: The ID of the backup vault
+
+### <a name="output_backup_vault_name"></a> [backup\_vault\_name](#output\_backup\_vault\_name)
+
+Description: The name of the backup vault
+
+### <a name="output_disk_backup_instance_ids"></a> [disk\_backup\_instance\_ids](#output\_disk\_backup\_instance\_ids)
+
+Description: Map of disk backup instance IDs
+
+### <a name="output_disk_backup_policy_ids"></a> [disk\_backup\_policy\_ids](#output\_disk\_backup\_policy\_ids)
+
+Description: Map of disk backup policy IDs
+
+### <a name="output_identity_principal_id"></a> [identity\_principal\_id](#output\_identity\_principal\_id)
+
+Description: The principal ID of the system assigned identity
+
+### <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name)
+
+Description: The name of the resource group
 
 ## Modules
 

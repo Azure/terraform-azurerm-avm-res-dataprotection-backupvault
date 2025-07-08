@@ -56,16 +56,16 @@ The following requirements are needed by this module:
 The following resources are used by this module:
 
 - [azapi_resource.vault_resource_guard_association](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) (resource)
-- [azurerm_data_protection_backup_instance_blob_storage.blob_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_blob_storage) (resource)
-- [azurerm_data_protection_backup_instance_disk.disk_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_disk) (resource)
+- [azurerm_data_protection_backup_instance_blob_storage.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_blob_storage) (resource)
+- [azurerm_data_protection_backup_instance_disk.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_disk) (resource)
 - [azurerm_data_protection_backup_instance_kubernetes_cluster.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_kubernetes_cluster) (resource)
-- [azurerm_data_protection_backup_instance_postgresql.postgresql_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql) (resource)
-- [azurerm_data_protection_backup_instance_postgresql_flexible_server.postgresql_flexible_backup_instance](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql_flexible_server) (resource)
+- [azurerm_data_protection_backup_instance_postgresql.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql) (resource)
+- [azurerm_data_protection_backup_instance_postgresql_flexible_server.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_instance_postgresql_flexible_server) (resource)
 - [azurerm_data_protection_backup_policy_blob_storage.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_blob_storage) (resource)
 - [azurerm_data_protection_backup_policy_disk.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_disk) (resource)
 - [azurerm_data_protection_backup_policy_kubernetes_cluster.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_kubernetes_cluster) (resource)
-- [azurerm_data_protection_backup_policy_postgresql.postgresql_backup_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql) (resource)
-- [azurerm_data_protection_backup_policy_postgresql_flexible_server.postgresql_flexible_backup_policy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql_flexible_server) (resource)
+- [azurerm_data_protection_backup_policy_postgresql.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql) (resource)
+- [azurerm_data_protection_backup_policy_postgresql_flexible_server.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql_flexible_server) (resource)
 - [azurerm_data_protection_backup_vault.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_vault) (resource)
 - [azurerm_data_protection_resource_guard.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_resource_guard) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
@@ -119,7 +119,7 @@ The following input variables are optional (have default values):
 
 ### <a name="input_backup_datasource_parameters"></a> [backup\_datasource\_parameters](#input\_backup\_datasource\_parameters)
 
-Description: Parameters to customize which resources/namespaces are included or excluded from AKS backups.
+Description: Configuration for Kubernetes backup datasource parameters.
 
 Type:
 
@@ -135,39 +135,140 @@ object({
   })
 ```
 
+Default: `null`
+
+### <a name="input_backup_instances"></a> [backup\_instances](#input\_backup\_instances)
+
+Description: Map of backup instances to create. Each instance references a backup policy via backup\_policy\_key.
+
+Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql\_flexible"
+
+Common settings:
+- name: Display name for the backup instance
+- backup\_policy\_key: Reference to a key in backup\_policies map
+
+Type-specific settings:
+- Disk: disk\_id, snapshot\_resource\_group\_name
+- Blob: storage\_account\_id, storage\_account\_container\_names
+- AKS: kubernetes\_cluster\_id, backup\_datasource\_parameters
+- PostgreSQL: postgresql\_server\_id, postgresql\_database\_id, postgresql\_key\_vault\_secret\_id
+- PostgreSQL Flexible: postgresql\_flexible\_server\_id, postgresql\_flexible\_database\_id, postgresql\_flexible\_key\_vault\_secret\_id
+
+Type:
+
+```hcl
+map(object({
+    type              = string # "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+    name              = string
+    backup_policy_key = string # References key from backup_policies map
+
+    # Disk-specific settings
+    disk_id                      = optional(string)
+    snapshot_resource_group_name = optional(string)
+
+    # Blob-specific settings
+    storage_account_id              = optional(string)
+    storage_account_container_names = optional(list(string), [])
+
+    # AKS-specific settings
+    kubernetes_cluster_id = optional(string)
+    backup_datasource_parameters = optional(object({
+      excluded_namespaces              = optional(list(string), [])
+      included_namespaces              = optional(list(string), [])
+      excluded_resource_types          = optional(list(string), [])
+      included_resource_types          = optional(list(string), [])
+      label_selectors                  = optional(list(string), [])
+      cluster_scoped_resources_enabled = optional(bool, false)
+      volume_snapshot_enabled          = optional(bool, false)
+    }))
+
+    # PostgreSQL-specific settings
+    postgresql_server_id           = optional(string)
+    postgresql_database_id         = optional(string)
+    postgresql_key_vault_secret_id = optional(string)
+
+    # PostgreSQL Flexible-specific settings
+    postgresql_flexible_server_id           = optional(string)
+    postgresql_flexible_database_id         = optional(string)
+    postgresql_flexible_key_vault_secret_id = optional(string)
+  }))
+```
+
 Default: `{}`
 
-### <a name="input_backup_policy_id"></a> [backup\_policy\_id](#input\_backup\_policy\_id)
+### <a name="input_backup_policies"></a> [backup\_policies](#input\_backup\_policies)
 
-Description: The ID of the Backup Policy that applies to the Backup Instance Blob Storage.
+Description: Map of backup policies to create. Each policy can be referenced by backup instances.  
+Key is used as reference identifier for backup instances.
 
-Type: `string`
+Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql\_flexible"
 
-Default: `null`
+Common settings:
+- backup\_repeating\_time\_intervals: List of ISO8601 backup schedule intervals
+- default\_retention\_duration: Default retention period in ISO8601 format
+- time\_zone: Time zone for backup schedules
+- retention\_rules: List of retention rules with criteria and lifecycle
 
-### <a name="input_backup_policy_name"></a> [backup\_policy\_name](#input\_backup\_policy\_name)
+Type-specific settings:
+- Blob: operational\_default\_retention\_duration, vault\_default\_retention\_duration
+- AKS: default\_retention\_life\_cycle with data\_store\_type and duration
 
-Description: The name which should be used for this Backup Policy Blob Storage.
+Type:
 
-Type: `string`
+```hcl
+map(object({
+    type = string # "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+    name = string
 
-Default: `null`
+    # Common policy settings
+    backup_repeating_time_intervals = optional(list(string), [])
+    default_retention_duration      = optional(string, "P30D")
+    time_zone                       = optional(string, "UTC")
+
+    # Disk-specific settings
+    # (all settings are shared with other types for consistency)
+
+    # Blob-specific settings
+    operational_default_retention_duration = optional(string)
+    vault_default_retention_duration       = optional(string)
+
+    # AKS-specific settings
+    default_retention_life_cycle = optional(object({
+      data_store_type = optional(string, "OperationalStore")
+      duration        = optional(string, "P14D")
+    }))
+
+    # Retention rules (common to all types)
+    retention_rules = optional(list(object({
+      name     = string
+      priority = number
+      duration = optional(string, "P30D")
+      criteria = list(object({
+        absolute_criteria      = optional(string)
+        days_of_month          = optional(list(number))
+        days_of_week           = optional(list(string))
+        months_of_year         = optional(list(string))
+        scheduled_backup_times = optional(list(string))
+        weeks_of_month         = optional(list(string))
+      }))
+      # Life cycle (for blob policies)
+      life_cycle = optional(list(object({
+        data_store_type = string
+        duration        = string
+      })), [])
+    })), [])
+  }))
+```
+
+Default: `{}`
 
 ### <a name="input_backup_repeating_time_intervals"></a> [backup\_repeating\_time\_intervals](#input\_backup\_repeating\_time\_intervals)
 
-Description: The repeating time intervals for disk backup policy in ISO8601 format (e.g., ['R/2024-01-01T00:00:00Z/P1D']).
+Description: List of repeating time intervals for scheduling backups.
 
 Type: `list(string)`
 
 Default: `[]`
-
-### <a name="input_blob_backup_instance_name"></a> [blob\_backup\_instance\_name](#input\_blob\_backup\_instance\_name)
-
-Description: The name of the Backup Instance Blob Storage.
-
-Type: `string`
-
-Default: `null`
 
 ### <a name="input_cross_region_restore_enabled"></a> [cross\_region\_restore\_enabled](#input\_cross\_region\_restore\_enabled)
 
@@ -201,35 +302,20 @@ object({
 
 Default: `null`
 
-### <a name="input_default_retention_duration"></a> [default\_retention\_duration](#input\_default\_retention\_duration)
-
-Description: The duration of the default retention rule in ISO 8601 format.
-
-Type: `string`
-
-Default: `null`
-
 ### <a name="input_default_retention_life_cycle"></a> [default\_retention\_life\_cycle](#input\_default\_retention\_life\_cycle)
 
-Description: The lifecycle configuration for default retention rule.
+Description: Default retention life cycle configuration for AKS backups.
 
 Type:
 
 ```hcl
 object({
-    data_store_type = string
-    duration        = string
+    data_store_type = optional(string, "OperationalStore")
+    duration        = optional(string, "P14D")
   })
 ```
 
-Default:
-
-```json
-{
-  "data_store_type": "OperationalStore",
-  "duration": "P14D"
-}
-```
+Default: `null`
 
 ### <a name="input_diagnostic_settings"></a> [diagnostic\_settings](#input\_diagnostic\_settings)
 
@@ -265,22 +351,6 @@ map(object({
 
 Default: `{}`
 
-### <a name="input_disk_backup_instance_name"></a> [disk\_backup\_instance\_name](#input\_disk\_backup\_instance\_name)
-
-Description: The name of the Backup Instance Disk.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_disk_id"></a> [disk\_id](#input\_disk\_id)
-
-Description: The ID of the source Disk for Backup.
-
-Type: `string`
-
-Default: `null`
-
 ### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
 
 Description: This variable controls whether or not telemetry is enabled for the module.  
@@ -290,14 +360,6 @@ If it is set to false, then no telemetry will be collected.
 Type: `bool`
 
 Default: `true`
-
-### <a name="input_identity_enabled"></a> [identity\_enabled](#input\_identity\_enabled)
-
-Description: Whether to enable Managed Service Identity for the Backup Vault.
-
-Type: `bool`
-
-Default: `false`
 
 ### <a name="input_immutability"></a> [immutability](#input\_immutability)
 
@@ -309,15 +371,7 @@ Default: `"Disabled"`
 
 ### <a name="input_kubernetes_backup_instance_name"></a> [kubernetes\_backup\_instance\_name](#input\_kubernetes\_backup\_instance\_name)
 
-Description: Name for the Kubernetes Cluster backup instance.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_kubernetes_backup_policy_id"></a> [kubernetes\_backup\_policy\_id](#input\_kubernetes\_backup\_policy\_id)
-
-Description: If set, uses this existing backup policy ID instead of creating one.
+Description: Name for the AKS backup instance when using direct configuration.
 
 Type: `string`
 
@@ -325,7 +379,7 @@ Default: `null`
 
 ### <a name="input_kubernetes_backup_policy_name"></a> [kubernetes\_backup\_policy\_name](#input\_kubernetes\_backup\_policy\_name)
 
-Description: Name for the Kubernetes Cluster backup policy.
+Description: Name for the AKS backup policy when using direct configuration.
 
 Type: `string`
 
@@ -333,7 +387,7 @@ Default: `null`
 
 ### <a name="input_kubernetes_cluster_id"></a> [kubernetes\_cluster\_id](#input\_kubernetes\_cluster\_id)
 
-Description: ID of the Kubernetes Cluster to back up.
+Description: Resource ID of the AKS cluster to back up when using direct configuration.
 
 Type: `string`
 
@@ -341,21 +395,20 @@ Default: `null`
 
 ### <a name="input_kubernetes_retention_rules"></a> [kubernetes\_retention\_rules](#input\_kubernetes\_retention\_rules)
 
-Description: List of retention rules specific to AKS backup policy
+Description: List of retention rules for AKS backups when using direct configuration.
 
 Type:
 
 ```hcl
 list(object({
-    name                   = string
-    priority               = number
-    absolute_criteria      = optional(string)
-    days_of_week           = optional(list(string))
-    months_of_year         = optional(list(string))
-    scheduled_backup_times = optional(list(string))
-    weeks_of_month         = optional(list(string))
-    data_store_type        = optional(string, "OperationalStore")
-    duration               = string
+    name              = string
+    priority          = number
+    absolute_criteria = optional(string)
+    days_of_week      = optional(list(string))
+    months_of_year    = optional(list(string))
+    weeks_of_month    = optional(list(string))
+    data_store_type   = optional(string, "OperationalStore")
+    duration          = string
   }))
 ```
 
@@ -397,100 +450,6 @@ object({
 
 Default: `{}`
 
-### <a name="input_operational_default_retention_duration"></a> [operational\_default\_retention\_duration](#input\_operational\_default\_retention\_duration)
-
-Description: The duration of operational default retention rule in ISO 8601 format.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_pg_retention_rules"></a> [pg\_retention\_rules](#input\_pg\_retention\_rules)
-
-Description: List of retention rules for PostgreSQL flexible server backup policy.
-
-Type:
-
-```hcl
-list(object({
-    name                   = string
-    priority               = number
-    duration               = string
-    data_store_type        = optional(string, "VaultStore")
-    absolute_criteria      = optional(string)
-    days_of_week           = optional(list(string))
-    months_of_year         = optional(list(string))
-    scheduled_backup_times = optional(list(string))
-    weeks_of_month         = optional(list(string))
-  }))
-```
-
-Default: `[]`
-
-### <a name="input_postgresql_backup_instance_name"></a> [postgresql\_backup\_instance\_name](#input\_postgresql\_backup\_instance\_name)
-
-Description: The name of the Backup Instance PostgreSQL.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_postgresql_backup_policy_id"></a> [postgresql\_backup\_policy\_id](#input\_postgresql\_backup\_policy\_id)
-
-Description: The ID of the Backup Policy PostgreSQL.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_postgresql_backup_policy_name"></a> [postgresql\_backup\_policy\_name](#input\_postgresql\_backup\_policy\_name)
-
-Description: The name of the PostgreSQL Flexible Server Backup Policy.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_postgresql_database_id"></a> [postgresql\_database\_id](#input\_postgresql\_database\_id)
-
-Description: The ID of the source PostgreSQL database.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_postgresql_flexible_backup_instance_name"></a> [postgresql\_flexible\_backup\_instance\_name](#input\_postgresql\_flexible\_backup\_instance\_name)
-
-Description: The name of the PostgreSQL Flexible Server Backup Instance.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_postgresql_flexible_backup_policy_id"></a> [postgresql\_flexible\_backup\_policy\_id](#input\_postgresql\_flexible\_backup\_policy\_id)
-
-Description: The ID of the PostgreSQL Flexible Server Backup Policy to use. If not provided, the module will create a policy.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_postgresql_flexible_server_id"></a> [postgresql\_flexible\_server\_id](#input\_postgresql\_flexible\_server\_id)
-
-Description: The ID of the PostgreSQL Flexible Server to be backed up.
-
-Type: `string`
-
-Default: `null`
-
-### <a name="input_postgresql_key_vault_secret_id"></a> [postgresql\_key\_vault\_secret\_id](#input\_postgresql\_key\_vault\_secret\_id)
-
-Description: The ID of the key vault secret that stores the database credentials.
-
-Type: `string`
-
-Default: `null`
-
 ### <a name="input_resource_guard_enabled"></a> [resource\_guard\_enabled](#input\_resource\_guard\_enabled)
 
 Description: Controls whether an Azure Data Protection Resource Guard is deployed to protect the backup vault from accidental or malicious operations.
@@ -514,34 +473,6 @@ Description: The soft delete retention duration for this Backup Vault. Valid val
 Type: `number`
 
 Default: `14`
-
-### <a name="input_retention_rules"></a> [retention\_rules](#input\_retention\_rules)
-
-Description: List of retention rules for the backup policy. Optional, can be left as an empty list.
-
-Type:
-
-```hcl
-list(object({
-    name     = string
-    duration = optional(string, null) # Make duration optional to support both cases
-    priority = number
-    criteria = list(object({
-      absolute_criteria      = string
-      days_of_month          = optional(list(number), null)
-      days_of_week           = optional(list(string), null)
-      months_of_year         = optional(list(string), null)
-      scheduled_backup_times = optional(list(string), null)
-      weeks_of_month         = optional(list(string), null)
-    }))
-    life_cycle = optional(list(object({
-      data_store_type = string
-      duration        = string
-    })), [])
-  }))
-```
-
-Default: `[]`
 
 ### <a name="input_role_assignments"></a> [role\_assignments](#input\_role\_assignments)
 
@@ -577,7 +508,7 @@ Default: `{}`
 
 ### <a name="input_snapshot_resource_group_name"></a> [snapshot\_resource\_group\_name](#input\_snapshot\_resource\_group\_name)
 
-Description: The name of the Resource Group where snapshots are stored.
+Description: Resource group name for AKS volume snapshots when using direct configuration.
 
 Type: `string`
 
@@ -592,22 +523,6 @@ Type: `string`
 
 Default: `"Off"`
 
-### <a name="input_storage_account_container_names"></a> [storage\_account\_container\_names](#input\_storage\_account\_container\_names)
-
-Description: Optional list of container names in the source Storage Account.
-
-Type: `list(string)`
-
-Default: `[]`
-
-### <a name="input_storage_account_id"></a> [storage\_account\_id](#input\_storage\_account\_id)
-
-Description: The ID of the source Storage Account for the Backup Instance.
-
-Type: `string`
-
-Default: `null`
-
 ### <a name="input_tags"></a> [tags](#input\_tags)
 
 Description: (Optional) Tags of the resource.
@@ -618,15 +533,15 @@ Default: `null`
 
 ### <a name="input_time_zone"></a> [time\_zone](#input\_time\_zone)
 
-Description: Specifies the Time Zone which should be used by the backup schedule.
+Description: Time zone for backup scheduling when using direct configuration.
 
 Type: `string`
 
-Default: `null`
+Default: `"UTC"`
 
 ### <a name="input_timeout_create"></a> [timeout\_create](#input\_timeout\_create)
 
-Description: The timeout duration for creating the Backup Instance Blob Storage.
+Description: The timeout duration for creating resources.
 
 Type: `string`
 
@@ -634,7 +549,7 @@ Default: `"30m"`
 
 ### <a name="input_timeout_delete"></a> [timeout\_delete](#input\_timeout\_delete)
 
-Description: The timeout duration for deleting the Backup Instance Blob Storage.
+Description: The timeout duration for deleting resources.
 
 Type: `string`
 
@@ -642,7 +557,7 @@ Default: `"30m"`
 
 ### <a name="input_timeout_read"></a> [timeout\_read](#input\_timeout\_read)
 
-Description: The timeout duration for reading the Backup Instance Blob Storage.
+Description: The timeout duration for reading resources.
 
 Type: `string`
 
@@ -650,7 +565,7 @@ Default: `"5m"`
 
 ### <a name="input_timeout_update"></a> [timeout\_update](#input\_timeout\_update)
 
-Description: The timeout duration for updating the Backup Instance Blob Storage.
+Description: The timeout duration for updating resources.
 
 Type: `string`
 
@@ -666,33 +581,45 @@ Type: `list(string)`
 
 Default: `[]`
 
-### <a name="input_vault_default_retention_duration"></a> [vault\_default\_retention\_duration](#input\_vault\_default\_retention\_duration)
-
-Description: The duration of vault default retention rule in ISO 8601 format.
-
-Type: `string`
-
-Default: `null`
-
 ## Outputs
 
 The following outputs are exported:
 
-### <a name="output_backup_policy_blob_storage_id"></a> [backup\_policy\_blob\_storage\_id](#output\_backup\_policy\_blob\_storage\_id)
+### <a name="output_backup_instance_ids"></a> [backup\_instance\_ids](#output\_backup\_instance\_ids)
 
-Description: The ID of the Blob Storage Backup Policy.
+Description: Map of backup instance IDs by instance key.
 
-### <a name="output_backup_policy_id"></a> [backup\_policy\_id](#output\_backup\_policy\_id)
+### <a name="output_backup_policy_ids"></a> [backup\_policy\_ids](#output\_backup\_policy\_ids)
 
-Description: The ID of the Backup Policy.
+Description: Map of backup policy IDs by policy key.
 
 ### <a name="output_backup_vault_id"></a> [backup\_vault\_id](#output\_backup\_vault\_id)
 
 Description: The ID of the Backup Vault.
 
+### <a name="output_backup_vault_name"></a> [backup\_vault\_name](#output\_backup\_vault\_name)
+
+Description: The name of the Backup Vault.
+
 ### <a name="output_blob_backup_instance_id"></a> [blob\_backup\_instance\_id](#output\_blob\_backup\_instance\_id)
 
-Description: The ID of the Blob Backup Instance.
+Description: (DEPRECATED) The ID of the Blob Backup Instance. Use backup\_instance\_ids instead.
+
+### <a name="output_blob_backup_instance_ids"></a> [blob\_backup\_instance\_ids](#output\_blob\_backup\_instance\_ids)
+
+Description: Map of blob backup instance IDs by instance key.
+
+### <a name="output_blob_backup_policy_ids"></a> [blob\_backup\_policy\_ids](#output\_blob\_backup\_policy\_ids)
+
+Description: Map of blob backup policy IDs by policy key.
+
+### <a name="output_disk_backup_instance_ids"></a> [disk\_backup\_instance\_ids](#output\_disk\_backup\_instance\_ids)
+
+Description: Map of disk backup instance IDs by instance key.
+
+### <a name="output_disk_backup_policy_ids"></a> [disk\_backup\_policy\_ids](#output\_disk\_backup\_policy\_ids)
+
+Description: Map of disk backup policy IDs by policy key.
 
 ### <a name="output_identity_principal_id"></a> [identity\_principal\_id](#output\_identity\_principal\_id)
 
@@ -702,17 +629,41 @@ Description: The Principal ID for the Service Principal associated with the Iden
 
 Description: The Tenant ID for the Service Principal associated with the Identity of this Backup Vault.
 
+### <a name="output_kubernetes_backup_instance_ids"></a> [kubernetes\_backup\_instance\_ids](#output\_kubernetes\_backup\_instance\_ids)
+
+Description: Map of Kubernetes backup instance IDs by instance key.
+
+### <a name="output_kubernetes_backup_policy_ids"></a> [kubernetes\_backup\_policy\_ids](#output\_kubernetes\_backup\_policy\_ids)
+
+Description: Map of Kubernetes backup policy IDs by policy key.
+
 ### <a name="output_lock_id"></a> [lock\_id](#output\_lock\_id)
 
 Description: The resource ID of the management lock (if created)
 
+### <a name="output_postgresql_backup_instance_ids"></a> [postgresql\_backup\_instance\_ids](#output\_postgresql\_backup\_instance\_ids)
+
+Description: Map of PostgreSQL backup instance IDs by instance key.
+
+### <a name="output_postgresql_backup_policy_ids"></a> [postgresql\_backup\_policy\_ids](#output\_postgresql\_backup\_policy\_ids)
+
+Description: Map of PostgreSQL backup policy IDs by policy key.
+
 ### <a name="output_postgresql_flexible_backup_instance_id"></a> [postgresql\_flexible\_backup\_instance\_id](#output\_postgresql\_flexible\_backup\_instance\_id)
 
-Description: The ID of the created PostgreSQL Flexible Server Backup Instance.
+Description: (DEPRECATED) The ID of the created PostgreSQL Flexible Server Backup Instance. Use backup\_instance\_ids instead.
+
+### <a name="output_postgresql_flexible_backup_instance_ids"></a> [postgresql\_flexible\_backup\_instance\_ids](#output\_postgresql\_flexible\_backup\_instance\_ids)
+
+Description: Map of PostgreSQL Flexible backup instance IDs by instance key.
 
 ### <a name="output_postgresql_flexible_backup_policy_id"></a> [postgresql\_flexible\_backup\_policy\_id](#output\_postgresql\_flexible\_backup\_policy\_id)
 
-Description: The ID of the created PostgreSQL Flexible Server Backup Policy.
+Description: (DEPRECATED) The ID of the created PostgreSQL Flexible Server Backup Policy. Use backup\_policy\_ids instead.
+
+### <a name="output_postgresql_flexible_backup_policy_ids"></a> [postgresql\_flexible\_backup\_policy\_ids](#output\_postgresql\_flexible\_backup\_policy\_ids)
+
+Description: Map of PostgreSQL Flexible backup policy IDs by policy key.
 
 ### <a name="output_resource_guard_id"></a> [resource\_guard\_id](#output\_resource\_guard\_id)
 

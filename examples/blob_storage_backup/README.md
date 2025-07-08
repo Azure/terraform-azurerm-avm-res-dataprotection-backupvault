@@ -6,6 +6,7 @@ This example demonstrates how to deploy the `azurerm_data_protection_backup_vaul
 ```hcl
 terraform {
   required_version = ">= 1.7.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -72,55 +73,67 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  backup_policy_id    = module.backup_vault.backup_policy_id
-  # Inputs for backup policy and backup instance
-  backup_policy_name = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-  # Valid repeating intervals for backup
-  backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT4H"]
-  blob_backup_instance_name              = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
-  enable_telemetry                       = true
-  identity_enabled                       = true
-  operational_default_retention_duration = "P30D"
-  # Define the retention rules list here
-  retention_rules = [
-    {
-      name     = "Daily"
-      duration = "P7D"
-      priority = 25
-      criteria = [{
-        absolute_criteria = "FirstOfDay"
-      }]
-      life_cycle = [{
-        data_store_type = "VaultStore"
-        duration        = "P30D"
-      }]
-    },
-    {
-      name     = "Weekly"
-      duration = "P7D"
-      priority = 20
-      criteria = [{
-        absolute_criteria = "FirstOfWeek"
-      }]
-      life_cycle = [{
-        data_store_type = "VaultStore"
-        duration        = "P30D"
-      }]
-    }
-  ]
-  role_assignments = {
-    example_assignment = {
-      principal_id               = module.backup_vault.identity_principal_id
-      role_definition_id_or_name = "Storage Account Backup Contributor"
-      description                = "Backup Contributor for Blob Storage"
-      scope                      = azurerm_storage_account.example.id
+  # Define backup instance
+  backup_instances = {
+    "blob-instance" = {
+      type                            = "blob"
+      name                            = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
+      backup_policy_key               = "blob-backup"
+      storage_account_id              = azurerm_storage_account.example.id
+      storage_account_container_names = [azurerm_storage_container.example.name]
     }
   }
-  soft_delete                      = "Off"
-  storage_account_container_names  = [azurerm_storage_container.example.name]
-  storage_account_id               = azurerm_storage_account.example.id
-  time_zone                        = "Central Standard Time"
-  vault_default_retention_duration = "P90D"
+  # Define backup policy
+  backup_policies = {
+    "blob-backup" = {
+      type                                   = "blob"
+      name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
+      backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+      operational_default_retention_duration = "P30D"
+      vault_default_retention_duration       = "P90D"
+      time_zone                              = "Central Standard Time"
+      retention_rules = [
+        {
+          name     = "Daily"
+          duration = "P7D"
+          priority = 25
+          criteria = [{
+            absolute_criteria = "FirstOfDay"
+          }]
+          life_cycle = [{
+            data_store_type = "VaultStore"
+            duration        = "P30D"
+          }]
+        },
+        {
+          name     = "Weekly"
+          duration = "P7D"
+          priority = 20
+          criteria = [{
+            absolute_criteria = "FirstOfWeek"
+          }]
+          life_cycle = [{
+            data_store_type = "VaultStore"
+            duration        = "P30D"
+          }]
+        }
+      ]
+    }
+  }
+  enable_telemetry = true
+  # Configure managed identity
+  managed_identities = {
+    system_assigned = true
+  }
+  soft_delete = "Off"
+}
+
+# Create role assignment outside the module to avoid circular dependencies
+resource "azurerm_role_assignment" "storage_account_backup_contributor" {
+  principal_id         = module.backup_vault.identity_principal_id
+  scope                = azurerm_storage_account.example.id
+  description          = "Backup Contributor for Blob Storage"
+  role_definition_name = "Storage Account Backup Contributor"
 }
 
 # Apply diagnostic settings to the Storage Account
@@ -160,6 +173,7 @@ The following resources are used by this module:
 
 - [azurerm_monitor_diagnostic_setting.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_role_assignment.storage_account_backup_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
 - [azurerm_storage_container.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)

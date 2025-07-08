@@ -16,14 +16,18 @@ resource "azurerm_management_lock" "this" {
 resource "azurerm_role_assignment" "this" {
   for_each = var.role_assignments
 
-  principal_id                           = each.value.principal_id != null ? each.value.principal_id : azurerm_data_protection_backup_vault.this.identity[0].principal_id
+  principal_id                           = each.value.principal_id == "system-assigned" ? (length(azurerm_data_protection_backup_vault.this.identity) > 0 ? azurerm_data_protection_backup_vault.this.identity[0].principal_id : null) : each.value.principal_id != null ? each.value.principal_id : (length(azurerm_data_protection_backup_vault.this.identity) > 0 ? azurerm_data_protection_backup_vault.this.identity[0].principal_id : null)
   scope                                  = each.value.scope != null ? each.value.scope : azurerm_data_protection_backup_vault.this.id
-  condition                              = each.value.condition != null ? each.value.condition : null
-  condition_version                      = each.value.condition != null ? each.value.condition_version : null
+  condition                              = each.value.condition
+  condition_version                      = each.value.condition_version
   delegated_managed_identity_resource_id = each.value.delegated_managed_identity_resource_id
   role_definition_id                     = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? each.value.role_definition_id_or_name : null
   role_definition_name                   = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? null : each.value.role_definition_id_or_name
   skip_service_principal_aad_check       = each.value.skip_service_principal_aad_check
+
+  depends_on = [
+    azurerm_data_protection_backup_vault.this
+  ]
 }
 
 resource "azurerm_monitor_diagnostic_setting" "this" {
@@ -51,11 +55,11 @@ resource "azurerm_monitor_diagnostic_setting" "this" {
       category_group = enabled_log.value
     }
   }
-  dynamic "metric" {
+  dynamic "enabled_metric" {
     for_each = each.value.metric_categories
 
     content {
-      category = metric.value
+      category = enabled_metric.value
     }
   }
 }
@@ -73,7 +77,7 @@ resource "azurerm_data_protection_backup_vault" "this" {
   tags                         = var.tags
 
   dynamic "identity" {
-    for_each = var.identity_enabled ? [1] : []
+    for_each = try(var.managed_identities.system_assigned, false) ? [1] : []
 
     content {
       type = "SystemAssigned"

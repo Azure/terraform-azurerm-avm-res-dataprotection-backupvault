@@ -1,4 +1,4 @@
-# Backup Policy for Kubernetes Cluster
+# AKS/Kubernetes Backup Policies
 resource "azurerm_data_protection_backup_policy_kubernetes_cluster" "this" {
   count = var.kubernetes_backup_policy_name != null ? 1 : 0
 
@@ -8,28 +8,24 @@ resource "azurerm_data_protection_backup_policy_kubernetes_cluster" "this" {
   vault_name                      = azurerm_data_protection_backup_vault.this.name
   time_zone                       = var.time_zone
 
-  # Default retention rule is required
   default_retention_rule {
     life_cycle {
-      data_store_type = var.default_retention_life_cycle.data_store_type
-      duration        = var.default_retention_life_cycle.duration
+      data_store_type = var.default_retention_life_cycle != null ? var.default_retention_life_cycle.data_store_type : "OperationalStore"
+      duration        = var.default_retention_life_cycle != null ? var.default_retention_life_cycle.duration : "P14D"
     }
   }
-  # Additional retention rules
   dynamic "retention_rule" {
-    for_each = var.kubernetes_retention_rules != null ? var.kubernetes_retention_rules : []
+    for_each = var.kubernetes_retention_rules
 
     content {
       name     = retention_rule.value.name
       priority = retention_rule.value.priority
 
       criteria {
-        # Use null for optional values to avoid errors
-        absolute_criteria      = try(retention_rule.value.absolute_criteria, null)
-        days_of_week           = try(retention_rule.value.days_of_week, null)
-        months_of_year         = try(retention_rule.value.months_of_year, null)
-        scheduled_backup_times = try(retention_rule.value.scheduled_backup_times, null)
-        weeks_of_month         = try(retention_rule.value.weeks_of_month, null)
+        absolute_criteria = try(retention_rule.value.absolute_criteria, null)
+        days_of_week      = try(retention_rule.value.days_of_week, null)
+        months_of_year    = try(retention_rule.value.months_of_year, null)
+        weeks_of_month    = try(retention_rule.value.weeks_of_month, null)
       }
       life_cycle {
         data_store_type = try(retention_rule.value.data_store_type, "OperationalStore")
@@ -44,14 +40,11 @@ resource "azurerm_data_protection_backup_policy_kubernetes_cluster" "this" {
   }
 }
 
-# Backup Instance for Kubernetes Cluster
+# AKS/Kubernetes Backup Instances
 resource "azurerm_data_protection_backup_instance_kubernetes_cluster" "this" {
   count = var.kubernetes_backup_instance_name != null ? 1 : 0
 
-  backup_policy_id = try(
-    azurerm_data_protection_backup_policy_kubernetes_cluster.this[0].id,
-    var.kubernetes_backup_policy_id
-  )
+  backup_policy_id             = length(azurerm_data_protection_backup_policy_kubernetes_cluster.this) > 0 ? azurerm_data_protection_backup_policy_kubernetes_cluster.this[0].id : null
   kubernetes_cluster_id        = var.kubernetes_cluster_id
   location                     = var.location
   name                         = var.kubernetes_backup_instance_name
@@ -73,8 +66,12 @@ resource "azurerm_data_protection_backup_instance_kubernetes_cluster" "this" {
     read   = var.timeout_read
   }
 
-  depends_on = [
-    azurerm_data_protection_backup_policy_kubernetes_cluster.this,
-    azurerm_role_assignment.this,
-  ]
+  depends_on = [azurerm_data_protection_backup_policy_kubernetes_cluster.this]
+
+  lifecycle {
+    precondition {
+      condition     = var.kubernetes_cluster_id != null
+      error_message = "kubernetes_cluster_id must be provided for direct AKS backup instance."
+    }
+  }
 }

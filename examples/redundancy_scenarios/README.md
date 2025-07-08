@@ -6,6 +6,7 @@ This deploys the Backup Vault module with different redundancy options, testing 
 ```hcl
 terraform {
   required_version = ">= 1.7.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
