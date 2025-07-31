@@ -128,8 +128,8 @@ module "backup_vault" {
       name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy-empty"
       backup_repeating_time_intervals        = [] # This would previously cause an error
       operational_default_retention_duration = "P30D"
-      vault_default_retention_duration       = "P90D"
-      time_zone                              = "UTC"
+      # vault_default_retention_duration omitted since it requires backup_repeating_time_intervals
+      time_zone = "UTC"
     }
   }
   enable_telemetry = true
