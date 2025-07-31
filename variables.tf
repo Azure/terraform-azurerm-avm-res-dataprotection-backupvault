@@ -158,7 +158,7 @@ variable "backup_policies" {
     name = string
 
     # Common policy settings
-    backup_repeating_time_intervals = optional(list(string), [])
+    backup_repeating_time_intervals = optional(list(string), []) # Empty list is handled as null to avoid provider validation errors
     default_retention_duration      = optional(string, "P30D")
     time_zone                       = optional(string, "UTC")
 
@@ -203,7 +203,7 @@ Key is used as reference identifier for backup instances.
 Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
 
 Common settings:
-- backup_repeating_time_intervals: List of ISO8601 backup schedule intervals
+- backup_repeating_time_intervals: List of ISO8601 backup schedule intervals (empty list handled gracefully)
 - default_retention_duration: Default retention period in ISO8601 format
 - time_zone: Time zone for backup schedules
 - retention_rules: List of retention rules with criteria and lifecycle

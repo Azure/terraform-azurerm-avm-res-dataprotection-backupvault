@@ -2,7 +2,7 @@
 resource "azurerm_data_protection_backup_policy_kubernetes_cluster" "this" {
   count = var.kubernetes_backup_policy_name != null ? 1 : 0
 
-  backup_repeating_time_intervals = var.backup_repeating_time_intervals
+  backup_repeating_time_intervals = length(var.backup_repeating_time_intervals) > 0 ? var.backup_repeating_time_intervals : null
   name                            = var.kubernetes_backup_policy_name
   resource_group_name             = var.resource_group_name
   vault_name                      = azurerm_data_protection_backup_vault.this.name

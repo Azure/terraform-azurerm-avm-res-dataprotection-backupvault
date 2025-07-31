@@ -205,7 +205,7 @@ Key is used as reference identifier for backup instances.
 Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql\_flexible"
 
 Common settings:
-- backup\_repeating\_time\_intervals: List of ISO8601 backup schedule intervals
+- backup\_repeating\_time\_intervals: List of ISO8601 backup schedule intervals (empty list handled gracefully)
 - default\_retention\_duration: Default retention period in ISO8601 format
 - time\_zone: Time zone for backup schedules
 - retention\_rules: List of retention rules with criteria and lifecycle
@@ -222,7 +222,7 @@ map(object({
     name = string
 
     # Common policy settings
-    backup_repeating_time_intervals = optional(list(string), [])
+    backup_repeating_time_intervals = optional(list(string), []) # Empty list is handled as null to avoid provider validation errors
     default_retention_duration      = optional(string, "P30D")
     time_zone                       = optional(string, "UTC")
 
