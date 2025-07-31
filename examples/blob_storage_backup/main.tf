@@ -59,6 +59,7 @@ resource "azurerm_storage_container" "example" {
 }
 
 # Module Call for Backup Vault
+# This example tests the fix for empty backup_repeating_time_intervals
 module "backup_vault" {
   source = "../../"
 
@@ -67,19 +68,27 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  # Define backup instance
+  # Define backup instances - test with the policy that has empty intervals
   backup_instances = {
-    "blob-instance" = {
+    "blob-instance-with-intervals" = {
       type                            = "blob"
       name                            = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
-      backup_policy_key               = "blob-backup"
+      backup_policy_key               = "blob-backup-with-intervals"
+      storage_account_id              = azurerm_storage_account.example.id
+      storage_account_container_names = [azurerm_storage_container.example.name]
+    }
+    # This instance uses the policy with empty intervals to test our fix
+    "blob-instance-empty-intervals" = {
+      type                            = "blob"
+      name                            = "${module.naming.recovery_services_vault.name_unique}-blob-instance-empty"
+      backup_policy_key               = "blob-backup-empty-intervals"
       storage_account_id              = azurerm_storage_account.example.id
       storage_account_container_names = [azurerm_storage_container.example.name]
     }
   }
-  # Define backup policy
+  # Define backup policies - including one with empty intervals to test the fix
   backup_policies = {
-    "blob-backup" = {
+    "blob-backup-with-intervals" = {
       type                                   = "blob"
       name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
       backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT4H"]
@@ -112,6 +121,15 @@ module "backup_vault" {
           }]
         }
       ]
+    }
+    # This policy tests the fix for empty backup_repeating_time_intervals
+    "blob-backup-empty-intervals" = {
+      type                                   = "blob"
+      name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy-empty"
+      backup_repeating_time_intervals        = [] # This would previously cause an error
+      operational_default_retention_duration = "P30D"
+      vault_default_retention_duration       = "P90D"
+      time_zone                              = "UTC"
     }
   }
   enable_telemetry = true
