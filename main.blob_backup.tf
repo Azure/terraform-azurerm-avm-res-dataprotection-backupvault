@@ -6,7 +6,7 @@ resource "azurerm_data_protection_backup_policy_blob_storage" "this" {
   vault_id                               = azurerm_data_protection_backup_vault.this.id
   backup_repeating_time_intervals        = length(each.value.backup_repeating_time_intervals) > 0 ? each.value.backup_repeating_time_intervals : null
   operational_default_retention_duration = each.value.operational_default_retention_duration
-  time_zone                              = coalesce(each.value.time_zone, "UTC")
+  time_zone                              = each.value.time_zone
   vault_default_retention_duration       = each.value.vault_default_retention_duration
 
   dynamic "retention_rule" {
