@@ -65,6 +65,18 @@ resource "azurerm_storage_account" "example" {
   location                 = azurerm_resource_group.example.location
   name                     = module.naming.storage_account.name_unique
   resource_group_name      = azurerm_resource_group.example.name
+
+  provisioner "local-exec" {
+    when    = "destroy"
+    command = <<-EOT
+      # Wait for backup vault to be deleted before destroying storage account
+      while az dataprotection backup-vault show --resource-group ${azurerm_resource_group.example.name} --vault-name ${module.backup_vault.name} --output none 2>/dev/null; do
+        echo "Waiting for backup vault to be deleted..."
+        sleep 10
+      done
+      echo "Backup vault deleted, proceeding with storage account deletion"
+    EOT
+  }
 }
 
 # Create a Storage Container
@@ -115,23 +127,8 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   scope                = azurerm_storage_account.example.id
   description          = "Backup Contributor for Blob Storage"
   role_definition_name = "Storage Account Backup Contributor"
-}
 
-# Apply diagnostic settings to the Storage Account
-resource "azurerm_monitor_diagnostic_setting" "example" {
-  name               = "${azurerm_storage_account.example.name}-diagnostics"
-  target_resource_id = azurerm_storage_account.example.id
-  storage_account_id = azurerm_storage_account.example.id
-
-  # Diagnostic metrics
-  metric {
-    category = "Transaction"
-    enabled  = true
-  }
-  metric {
-    category = "Capacity"
-    enabled  = true
-  }
+  depends_on = [module.backup_vault]
 }
 
 
@@ -152,7 +149,6 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azurerm_monitor_diagnostic_setting.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_role_assignment.storage_account_backup_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
