@@ -101,21 +101,4 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   role_definition_name = "Storage Account Backup Contributor"
 }
 
-# Apply diagnostic settings to the Storage Account
-resource "azurerm_monitor_diagnostic_setting" "example" {
-  name               = "${azurerm_storage_account.example.name}-diagnostics"
-  target_resource_id = azurerm_storage_account.example.id
-  storage_account_id = azurerm_storage_account.example.id
-
-  # Diagnostic metrics
-  metric {
-    category = "Transaction"
-    enabled  = true
-  }
-  metric {
-    category = "Capacity"
-    enabled  = true
-  }
-}
-
 
