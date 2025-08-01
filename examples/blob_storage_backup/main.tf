@@ -73,20 +73,20 @@ module "backup_vault" {
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
   backup_instances = {
-    "blob-instance-empty-intervals" = {
+    "blob-instance-daily" = {
       type                            = "blob"
       name                            = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
-      backup_policy_key               = "blob-backup-empty-intervals"
+      backup_policy_key               = "blob-backup-daily"
       storage_account_id              = azurerm_storage_account.example.id
       storage_account_container_names = [azurerm_storage_container.example.name]
     }
   }
   # Define backup policy
   backup_policies = {
-    "blob-backup-empty-intervals" = {
+    "blob-backup-daily" = {
       type                                   = "blob"
       name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-      backup_repeating_time_intervals        = []
+      backup_repeating_time_intervals        = ["R/2025-01-01T02:00:00+00:00/P1D"]
       operational_default_retention_duration = "P30D"
       time_zone                              = "UTC"
     }
@@ -95,15 +95,12 @@ module "backup_vault" {
   managed_identities = {
     system_assigned = true
   }
+  role_assignments = {
+    storage_account_backup_contributor = {
+      principal_id               = "system-assigned"
+      role_definition_id_or_name = "Storage Account Backup Contributor"
+      scope                      = azurerm_storage_account.example.id
+    }
+  }
   soft_delete = "Off"
 }
-
-# Create role assignment outside the module to avoid circular dependencies
-resource "azurerm_role_assignment" "storage_account_backup_contributor" {
-  principal_id         = module.backup_vault.identity_principal_id
-  scope                = azurerm_storage_account.example.id
-  description          = "Backup Contributor for Blob Storage"
-  role_definition_name = "Storage Account Backup Contributor"
-}
-
-
