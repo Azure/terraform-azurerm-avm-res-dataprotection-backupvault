@@ -67,15 +67,8 @@ resource "azurerm_storage_account" "example" {
   resource_group_name      = azurerm_resource_group.example.name
 
   provisioner "local-exec" {
-    when    = "destroy"
-    command = <<-EOT
-      # Wait for backup vault to be deleted before destroying storage account
-      while az dataprotection backup-vault show --resource-group ${azurerm_resource_group.example.name} --vault-name ${module.backup_vault.name} --output none 2>/dev/null; do
-        echo "Waiting for backup vault to be deleted..."
-        sleep 10
-      done
-      echo "Backup vault deleted, proceeding with storage account deletion"
-    EOT
+    command = "echo 'Waiting for Azure to release backup vault locks...' && sleep 120"
+    when    = destroy
   }
 }
 
@@ -127,8 +120,6 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   scope                = azurerm_storage_account.example.id
   description          = "Backup Contributor for Blob Storage"
   role_definition_name = "Storage Account Backup Contributor"
-
-  depends_on = [module.backup_vault]
 }
 
 

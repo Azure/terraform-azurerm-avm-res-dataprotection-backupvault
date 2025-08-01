@@ -51,8 +51,8 @@ resource "azurerm_storage_account" "example" {
   resource_group_name      = azurerm_resource_group.example.name
 
   provisioner "local-exec" {
-    when    = "destroy"
-    command = "echo 'Waiting for Azure to release backup vault locks...' && sleep 90"
+    command = "echo 'Waiting for Azure to release backup vault locks...' && sleep 120"
+    when    = destroy
   }
 }
 
