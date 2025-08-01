@@ -2,7 +2,7 @@
 resource "azurerm_data_protection_backup_policy_postgresql_flexible_server" "this" {
   for_each = local.postgresql_flexible_policies
 
-  backup_repeating_time_intervals = each.value.backup_repeating_time_intervals
+  backup_repeating_time_intervals = length(each.value.backup_repeating_time_intervals) > 0 ? each.value.backup_repeating_time_intervals : null
   name                            = each.value.name
   vault_id                        = azurerm_data_protection_backup_vault.this.id
   time_zone                       = coalesce(each.value.time_zone, "UTC")

@@ -2,7 +2,7 @@
 resource "azurerm_data_protection_backup_policy_disk" "this" {
   for_each = local.disk_policies
 
-  backup_repeating_time_intervals = each.value.backup_repeating_time_intervals
+  backup_repeating_time_intervals = length(each.value.backup_repeating_time_intervals) > 0 ? each.value.backup_repeating_time_intervals : null
   default_retention_duration      = each.value.default_retention_duration
   name                            = each.value.name
   vault_id                        = azurerm_data_protection_backup_vault.this.id

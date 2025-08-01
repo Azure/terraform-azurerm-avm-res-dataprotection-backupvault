@@ -20,7 +20,7 @@ provider "azurerm" {
 # Randomly select an Azure region for the resource group
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "~> 0.1"
+  version = "0.1.0"
 }
 
 resource "random_integer" "region_index" {
@@ -31,7 +31,7 @@ resource "random_integer" "region_index" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "~> 0.3"
+  version = "0.3.0"
 
   suffix = ["blob"]
 }
@@ -49,6 +49,11 @@ resource "azurerm_storage_account" "example" {
   location                 = azurerm_resource_group.example.location
   name                     = module.naming.storage_account.name_unique
   resource_group_name      = azurerm_resource_group.example.name
+
+  provisioner "local-exec" {
+    command = "echo 'Waiting for Azure to release backup vault locks...' && sleep 120"
+    when    = destroy
+  }
 }
 
 # Create a Storage Container
@@ -67,84 +72,35 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  # Define backup instance
   backup_instances = {
-    "blob-instance" = {
+    "blob-instance-daily" = {
       type                            = "blob"
       name                            = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
-      backup_policy_key               = "blob-backup"
+      backup_policy_key               = "blob-backup-daily"
       storage_account_id              = azurerm_storage_account.example.id
       storage_account_container_names = [azurerm_storage_container.example.name]
     }
   }
   # Define backup policy
   backup_policies = {
-    "blob-backup" = {
+    "blob-backup-daily" = {
       type                                   = "blob"
       name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-      backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+      backup_repeating_time_intervals        = ["R/2025-01-01T02:00:00+00:00/P1D"]
       operational_default_retention_duration = "P30D"
-      vault_default_retention_duration       = "P90D"
-      time_zone                              = "Central Standard Time"
-      retention_rules = [
-        {
-          name     = "Daily"
-          duration = "P7D"
-          priority = 25
-          criteria = [{
-            absolute_criteria = "FirstOfDay"
-          }]
-          life_cycle = [{
-            data_store_type = "VaultStore"
-            duration        = "P30D"
-          }]
-        },
-        {
-          name     = "Weekly"
-          duration = "P7D"
-          priority = 20
-          criteria = [{
-            absolute_criteria = "FirstOfWeek"
-          }]
-          life_cycle = [{
-            data_store_type = "VaultStore"
-            duration        = "P30D"
-          }]
-        }
-      ]
+      time_zone                              = "UTC"
     }
   }
   enable_telemetry = true
-  # Configure managed identity
   managed_identities = {
     system_assigned = true
   }
+  role_assignments = {
+    storage_account_backup_contributor = {
+      principal_id               = "system-assigned"
+      role_definition_id_or_name = "Storage Account Backup Contributor"
+      scope                      = azurerm_storage_account.example.id
+    }
+  }
   soft_delete = "Off"
 }
-
-# Create role assignment outside the module to avoid circular dependencies
-resource "azurerm_role_assignment" "storage_account_backup_contributor" {
-  principal_id         = module.backup_vault.identity_principal_id
-  scope                = azurerm_storage_account.example.id
-  description          = "Backup Contributor for Blob Storage"
-  role_definition_name = "Storage Account Backup Contributor"
-}
-
-# Apply diagnostic settings to the Storage Account
-resource "azurerm_monitor_diagnostic_setting" "example" {
-  name               = "${azurerm_storage_account.example.name}-diagnostics"
-  target_resource_id = azurerm_storage_account.example.id
-  storage_account_id = azurerm_storage_account.example.id # Use the Storage Account ID directly
-
-  # Diagnostic metrics
-  metric {
-    category = "Transaction"
-    enabled  = true
-  }
-  metric {
-    category = "Capacity"
-    enabled  = true
-  }
-}
-
-

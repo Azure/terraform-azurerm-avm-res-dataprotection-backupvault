@@ -24,7 +24,7 @@ provider "azurerm" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "~> 0.3"
+  version = "0.3.0"
 
   prefix = ["avm"]
   suffix = ["flexible"]

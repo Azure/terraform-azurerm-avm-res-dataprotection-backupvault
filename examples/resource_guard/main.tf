@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azapi = {
       source  = "azure/azapi"
-      version = "~> 2.0"
+      version = ">= 1.9.0, < 3.0.0"
     }
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -31,7 +31,7 @@ resource "azurerm_role_assignment" "backup_mua_operator" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "~> 0.3"
+  version = "0.3.0"
 
   suffix = ["resourceguard"]
 }

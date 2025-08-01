@@ -44,7 +44,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.7.0)
 
-- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (>= 1.9.0, < 3.0.0)
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.116.0, < 5.0.0)
 
@@ -205,7 +205,7 @@ Key is used as reference identifier for backup instances.
 Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql\_flexible"
 
 Common settings:
-- backup\_repeating\_time\_intervals: List of ISO8601 backup schedule intervals
+- backup\_repeating\_time\_intervals: List of ISO8601 backup schedule intervals (empty list handled gracefully)
 - default\_retention\_duration: Default retention period in ISO8601 format
 - time\_zone: Time zone for backup schedules
 - retention\_rules: List of retention rules with criteria and lifecycle
@@ -222,7 +222,7 @@ map(object({
     name = string
 
     # Common policy settings
-    backup_repeating_time_intervals = optional(list(string), [])
+    backup_repeating_time_intervals = optional(list(string), []) # Empty list is handled as null to avoid provider validation errors
     default_retention_duration      = optional(string, "P30D")
     time_zone                       = optional(string, "UTC")
 
