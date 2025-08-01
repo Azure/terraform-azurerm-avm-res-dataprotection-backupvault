@@ -59,7 +59,6 @@ resource "azurerm_storage_container" "example" {
 }
 
 # Module Call for Backup Vault
-# This example tests the fix for empty backup_repeating_time_intervals
 module "backup_vault" {
   source = "../../"
 
@@ -68,72 +67,26 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  # Define backup instances - test with the policy that has empty intervals
   backup_instances = {
-    "blob-instance-with-intervals" = {
-      type                            = "blob"
-      name                            = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
-      backup_policy_key               = "blob-backup-with-intervals"
-      storage_account_id              = azurerm_storage_account.example.id
-      storage_account_container_names = [azurerm_storage_container.example.name]
-    }
-    # This instance uses the policy with empty intervals to test our fix
     "blob-instance-empty-intervals" = {
       type                            = "blob"
-      name                            = "${module.naming.recovery_services_vault.name_unique}-blob-instance-empty"
+      name                            = "${module.naming.recovery_services_vault.name_unique}-blob-instance"
       backup_policy_key               = "blob-backup-empty-intervals"
       storage_account_id              = azurerm_storage_account.example.id
       storage_account_container_names = [azurerm_storage_container.example.name]
     }
   }
-  # Define backup policies - including one with empty intervals to test the fix
+  # Define backup policy
   backup_policies = {
-    "blob-backup-with-intervals" = {
-      type                                   = "blob"
-      name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-      backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT4H"]
-      operational_default_retention_duration = "P30D"
-      vault_default_retention_duration       = "P90D"
-      time_zone                              = "Central Standard Time"
-      retention_rules = [
-        {
-          name     = "Daily"
-          duration = "P7D"
-          priority = 25
-          criteria = [{
-            absolute_criteria = "FirstOfDay"
-          }]
-          life_cycle = [{
-            data_store_type = "VaultStore"
-            duration        = "P30D"
-          }]
-        },
-        {
-          name     = "Weekly"
-          duration = "P7D"
-          priority = 20
-          criteria = [{
-            absolute_criteria = "FirstOfWeek"
-          }]
-          life_cycle = [{
-            data_store_type = "VaultStore"
-            duration        = "P30D"
-          }]
-        }
-      ]
-    }
-    # This policy tests the fix for empty backup_repeating_time_intervals
     "blob-backup-empty-intervals" = {
       type                                   = "blob"
-      name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy-empty"
-      backup_repeating_time_intervals        = [] # This would previously cause an error
+      name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
+      backup_repeating_time_intervals        = []
       operational_default_retention_duration = "P30D"
-      # vault_default_retention_duration omitted since it requires backup_repeating_time_intervals
-      time_zone = "UTC"
+      time_zone                              = "UTC"
     }
   }
   enable_telemetry = true
-  # Configure managed identity
   managed_identities = {
     system_assigned = true
   }
@@ -152,7 +105,7 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
 resource "azurerm_monitor_diagnostic_setting" "example" {
   name               = "${azurerm_storage_account.example.name}-diagnostics"
   target_resource_id = azurerm_storage_account.example.id
-  storage_account_id = azurerm_storage_account.example.id # Use the Storage Account ID directly
+  storage_account_id = azurerm_storage_account.example.id
 
   # Diagnostic metrics
   metric {
