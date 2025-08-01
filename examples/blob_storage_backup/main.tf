@@ -49,6 +49,10 @@ resource "azurerm_storage_account" "example" {
   location                 = azurerm_resource_group.example.location
   name                     = module.naming.storage_account.name_unique
   resource_group_name      = azurerm_resource_group.example.name
+
+  depends_on = [
+    module.backup_vault
+  ]
 }
 
 # Create a Storage Container
