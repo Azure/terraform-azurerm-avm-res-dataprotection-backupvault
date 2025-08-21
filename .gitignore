@@ -51,3 +51,5 @@ avm.tflint_module.merged.hcl
 # Ignore Copilot instructions
 copilot-instructions.md
 examples/*/policy
+*.mptfbackup
+.avm
