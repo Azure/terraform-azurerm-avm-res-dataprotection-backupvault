@@ -30,7 +30,11 @@ resource "azapi_resource" "vault_resource_guard_association" {
       resourceGuardResourceId = azurerm_data_protection_resource_guard.this[0].id
     }
   })
+  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   schema_validation_enabled = false
+  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 
   depends_on = [
     azurerm_data_protection_resource_guard.this,
