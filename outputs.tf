@@ -136,3 +136,9 @@ output "vault_id" {
   description = "The resource ID of the Backup Vault"
   value       = azurerm_data_protection_backup_vault.this.id
 }
+
+# Customer Managed Key Output
+output "customer_managed_key_id" {
+  description = "The ID of the Customer Managed Key configuration (if enabled)"
+  value       = try(azurerm_data_protection_backup_vault_customer_managed_key.this[0].id, null)
+}
