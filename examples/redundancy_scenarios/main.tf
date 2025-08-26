@@ -20,7 +20,7 @@ provider "azurerm" {
 # Randomly select an Azure region for the resource group
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.1.0"
+  version = "0.7.0"
 }
 
 resource "random_integer" "region_index" {
