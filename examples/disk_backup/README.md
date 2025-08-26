@@ -6,12 +6,20 @@ This example demonstrates how to deploy the `azurerm_data_protection_backup_vaul
 
 ```hcl
 terraform {
-  required_version = ">= 1.7.0"
+  required_version = ">= 1.9, < 2.0"
 
   required_providers {
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.4"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 3.116.0, < 5.0.0"
+      version = "~> 4.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.5.0, < 4.0"
     }
   }
 }
@@ -27,6 +35,8 @@ provider "azurerm" {
     }
   }
 }
+
+provider "azapi" {}
 
 # Naming module
 module "naming" {
@@ -172,9 +182,13 @@ resource "azurerm_role_assignment" "disk_snapshot_contributor" {
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.7.0)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.116.0, < 5.0.0)
+- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.4)
+
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+
+- <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0, < 4.0)
 
 ## Resources
 
