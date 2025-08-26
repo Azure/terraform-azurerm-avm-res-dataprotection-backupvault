@@ -68,6 +68,7 @@ The following resources are used by this module:
 - [azurerm_data_protection_backup_policy_postgresql.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql) (resource)
 - [azurerm_data_protection_backup_policy_postgresql_flexible_server.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql_flexible_server) (resource)
 - [azurerm_data_protection_backup_vault.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_vault) (resource)
+- [azurerm_data_protection_backup_vault_customer_managed_key.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_vault_customer_managed_key) (resource)
 - [azurerm_data_protection_resource_guard.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_resource_guard) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
@@ -286,7 +287,10 @@ Description: A map describing customer-managed keys to associate with the resour
 - `key_name` - The name of the key.
 - `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
 - `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
+  - `resource_id` - The resource ID of the user-assigned identity.  
+
+NOTE: Azure Data Protection Backup Vault only supports system-assigned managed identity for CMK access.   
+The user\_assigned\_identity parameter is kept for compatibility but will not be used by the backup vault resource.
 
 Type:
 
@@ -613,6 +617,10 @@ Description: Map of blob backup instance IDs by instance key.
 ### <a name="output_blob_backup_policy_ids"></a> [blob\_backup\_policy\_ids](#output\_blob\_backup\_policy\_ids)
 
 Description: Map of blob backup policy IDs by policy key.
+
+### <a name="output_customer_managed_key_id"></a> [customer\_managed\_key\_id](#output\_customer\_managed\_key\_id)
+
+Description: The ID of the Customer Managed Key configuration (if enabled)
 
 ### <a name="output_disk_backup_instance_ids"></a> [disk\_backup\_instance\_ids](#output\_disk\_backup\_instance\_ids)
 

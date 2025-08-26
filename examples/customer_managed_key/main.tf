@@ -40,14 +40,11 @@ resource "azurerm_key_vault" "example" {
   resource_group_name         = azurerm_resource_group.example.name
   sku_name                    = "standard"
   tenant_id                   = data.azurerm_client_config.current.tenant_id
+  enabled_for_disk_encryption = true
   purge_protection_enabled    = true
   soft_delete_retention_days  = 7
-  enabled_for_disk_encryption = true
 
   access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
-
     key_permissions = [
       "Create",
       "Delete",
@@ -59,20 +56,13 @@ resource "azurerm_key_vault" "example" {
       "GetRotationPolicy",
       "SetRotationPolicy"
     ]
+    object_id = data.azurerm_client_config.current.object_id
+    tenant_id = data.azurerm_client_config.current.tenant_id
   }
-
-  # Access policy for backup vault system-assigned identity (will be added after backup vault creation)
-  # Note: This cannot be done inline because the backup vault's identity doesn't exist yet
-}
 }
 
 # Create Key Vault Key
 resource "azurerm_key_vault_key" "example" {
-  key_vault_id = azurerm_key_vault.example.id
-  name         = "backup-vault-cmk"
-  key_type     = "RSA"
-  key_size     = 2048
-
   key_opts = [
     "decrypt",
     "encrypt",
@@ -81,6 +71,10 @@ resource "azurerm_key_vault_key" "example" {
     "verify",
     "wrapKey",
   ]
+  key_type     = "RSA"
+  key_vault_id = azurerm_key_vault.example.id
+  name         = "backup-vault-cmk"
+  key_size     = 2048
 
   depends_on = [azurerm_key_vault.example]
 }
@@ -95,7 +89,6 @@ module "backup_vault" {
   name                = module.naming.recovery_services_vault.name_unique
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  
   # Customer Managed Key configuration
   customer_managed_key = {
     key_vault_resource_id = azurerm_key_vault.example.id
@@ -103,14 +96,12 @@ module "backup_vault" {
     key_version           = null # Use latest version
     # user_assigned_identity not supported by backup vault - only system-assigned identity
   }
-
+  diagnostic_settings = {}
+  enable_telemetry    = true # Enable telemetry (optional)
   # Enable system-assigned managed identity for backup vault
   managed_identities = {
     system_assigned = true
   }
-
-  diagnostic_settings = {}
-  enable_telemetry    = true # Enable telemetry (optional)
 
   depends_on = [
     azurerm_key_vault_key.example
@@ -120,9 +111,8 @@ module "backup_vault" {
 # Add access policy for backup vault's system-assigned identity to Key Vault
 resource "azurerm_key_vault_access_policy" "backup_vault" {
   key_vault_id = azurerm_key_vault.example.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
   object_id    = module.backup_vault.identity_principal_id
-
+  tenant_id    = data.azurerm_client_config.current.tenant_id
   key_permissions = [
     "Get",
     "WrapKey",
