@@ -50,6 +50,12 @@ output "blob_backup_policy_ids" {
   value       = { for k, v in azurerm_data_protection_backup_policy_blob_storage.this : k => v.id }
 }
 
+# Customer Managed Key Output
+output "customer_managed_key_id" {
+  description = "The ID of the Customer Managed Key configuration (if enabled)"
+  value       = try(azurerm_data_protection_backup_vault_customer_managed_key.this[0].id, null)
+}
+
 output "disk_backup_instance_ids" {
   description = "Map of disk backup instance IDs by instance key."
   value       = { for k, v in azurerm_data_protection_backup_instance_disk.this : k => v.id }

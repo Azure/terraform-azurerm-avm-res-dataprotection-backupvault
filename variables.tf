@@ -259,6 +259,9 @@ A map describing customer-managed keys to associate with the resource. This incl
 - `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
 - `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
   - `resource_id` - The resource ID of the user-assigned identity.
+  
+NOTE: Azure Data Protection Backup Vault only supports system-assigned managed identity for CMK access. 
+The user_assigned_identity parameter is kept for compatibility but will not be used by the backup vault resource.
 DESCRIPTION
 }
 

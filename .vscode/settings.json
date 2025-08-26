@@ -2,5 +2,8 @@
   "editor.bracketPairColorization.enabled": true,
   "editor.tabSize": 2,
   "files.eol": "\n",
-  "makefile.configureOnOpen": false
+  "makefile.configureOnOpen": false,
+  "github.copilot.chat.executeImmediately.shell": true,
+  "github.copilot.chat.executeImmediately.terminal": true,
+  "github.copilot.chat.confirmExecution": false
 }
