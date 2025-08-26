@@ -6,22 +6,27 @@ This example demonstrates how to deploy an Azure Data Protection Backup Vault wi
 
 - Creates a backup vault with customer managed key encryption
 - Sets up a Key Vault with appropriate access policies
-- Creates a user-assigned managed identity for key access
+- Uses the backup vault's system-assigned managed identity for key access
 - Configures encryption using a customer managed key from Key Vault
+
+## Important Notes
+
+**Identity Limitations:**
+- Azure Data Protection Backup Vault only supports system-assigned managed identity
+- User-assigned managed identities are not supported by this resource type
+- The backup vault's system-assigned identity is automatically granted access to the Key Vault
+
+**Key Vault Requirements:**
+- Purge protection must be enabled
+- Soft delete must be enabled  
+- The backup vault's system-assigned identity needs `Get`, `WrapKey`, and `UnwrapKey` permissions
 
 ## Resources
 
-- Azure Data Protection Backup Vault
+- Azure Data Protection Backup Vault with system-assigned identity
 - Key Vault with purge protection enabled
 - Key Vault Key for encryption
-- User Assigned Managed Identity
-- Appropriate access policies for key operations
-
-## Prerequisites
-
-- Azure subscription with appropriate permissions
-- Terraform >= 1.7.0
-- Azure CLI or appropriate Azure authentication
+- Key Vault Access Policy for backup vault identity
 
 ## Usage
 
@@ -40,35 +45,25 @@ module "backup_vault" {
     key_vault_resource_id = azurerm_key_vault.example.id
     key_name              = "backup-vault-cmk"
     key_version           = null # Use latest version
-    user_assigned_identity = {
-      resource_id = azurerm_user_assigned_identity.example.id
-    }
+    # Note: user_assigned_identity is not supported
   }
 
-  # Enable user-assigned managed identity
+  # Enable system-assigned managed identity
   managed_identities = {
-    user_assigned_resource_ids = [azurerm_user_assigned_identity.example.id]
+    system_assigned = true
   }
 }
+
+# Grant backup vault identity access to Key Vault
+resource "azurerm_key_vault_access_policy" "backup_vault" {
+  key_vault_id = azurerm_key_vault.example.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = module.backup_vault.identity_principal_id
+
+  key_permissions = [
+    "Get",
+    "WrapKey", 
+    "UnwrapKey"
+  ]
+}
 ```
-
-## Important Notes
-
-1. **Key Vault Requirements:**
-   - Purge protection must be enabled
-   - Soft delete must be enabled
-   - Appropriate access policies for the managed identity
-
-2. **Managed Identity:**
-   - Must have `Get`, `WrapKey`, and `UnwrapKey` permissions on the Key Vault
-   - Must be assigned to the backup vault
-
-3. **Key Requirements:**
-   - RSA key type with minimum 2048-bit size
-   - Must have `wrapKey` and `unwrapKey` operations enabled
-
-## Security Considerations
-
-- The Key Vault is configured with purge protection to prevent accidental deletion
-- Access policies are configured with minimal required permissions
-- User-assigned managed identity provides secure access to encryption keys

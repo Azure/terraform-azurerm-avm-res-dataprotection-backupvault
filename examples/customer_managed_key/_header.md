@@ -6,5 +6,5 @@ This example demonstrates how to deploy an Azure Data Protection Backup Vault wi
 
 - Creates a backup vault with customer managed key encryption
 - Sets up a Key Vault with appropriate access policies
-- Creates a user-assigned managed identity for key access
+- Uses the backup vault's system-assigned managed identity for key access
 - Configures encryption using a customer managed key from Key Vault

@@ -77,7 +77,7 @@ resource "azurerm_data_protection_backup_vault" "this" {
   tags                         = var.tags
 
   dynamic "identity" {
-    for_each = try(var.managed_identities.system_assigned, false) ? [1] : []
+    for_each = var.managed_identities.system_assigned ? [1] : []
 
     content {
       type = "SystemAssigned"

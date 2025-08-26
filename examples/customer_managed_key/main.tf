@@ -33,13 +33,6 @@ resource "azurerm_resource_group" "example" {
   name     = module.naming.resource_group.name_unique
 }
 
-# Create a User Assigned Managed Identity for Key Vault access
-resource "azurerm_user_assigned_identity" "example" {
-  location            = azurerm_resource_group.example.location
-  name                = module.naming.user_assigned_identity.name_unique
-  resource_group_name = azurerm_resource_group.example.name
-}
-
 # Create Key Vault
 resource "azurerm_key_vault" "example" {
   location                    = azurerm_resource_group.example.location
@@ -68,16 +61,9 @@ resource "azurerm_key_vault" "example" {
     ]
   }
 
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = azurerm_user_assigned_identity.example.principal_id
-
-    key_permissions = [
-      "Get",
-      "WrapKey",
-      "UnwrapKey"
-    ]
-  }
+  # Access policy for backup vault system-assigned identity (will be added after backup vault creation)
+  # Note: This cannot be done inline because the backup vault's identity doesn't exist yet
+}
 }
 
 # Create Key Vault Key
@@ -115,21 +101,33 @@ module "backup_vault" {
     key_vault_resource_id = azurerm_key_vault.example.id
     key_name              = azurerm_key_vault_key.example.name
     key_version           = null # Use latest version
-    user_assigned_identity = {
-      resource_id = azurerm_user_assigned_identity.example.id
-    }
+    # user_assigned_identity not supported by backup vault - only system-assigned identity
   }
 
-  # Managed identity for backup vault
+  # Enable system-assigned managed identity for backup vault
   managed_identities = {
-    user_assigned_resource_ids = [azurerm_user_assigned_identity.example.id]
+    system_assigned = true
   }
 
   diagnostic_settings = {}
   enable_telemetry    = true # Enable telemetry (optional)
 
   depends_on = [
-    azurerm_key_vault_key.example,
-    azurerm_user_assigned_identity.example
+    azurerm_key_vault_key.example
   ]
+}
+
+# Add access policy for backup vault's system-assigned identity to Key Vault
+resource "azurerm_key_vault_access_policy" "backup_vault" {
+  key_vault_id = azurerm_key_vault.example.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = module.backup_vault.identity_principal_id
+
+  key_permissions = [
+    "Get",
+    "WrapKey",
+    "UnwrapKey"
+  ]
+
+  depends_on = [module.backup_vault]
 }
