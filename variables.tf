@@ -244,29 +244,20 @@ variable "cross_region_restore_enabled" {
 # tflint-ignore: terraform_unused_declarations
 variable "customer_managed_key" {
   type = object({
-    # New simplified input: full Key Vault key URL (versionless or versioned)
-    key_id = optional(string, null)
-    # Back-compat inputs
-    key_vault_key_id = optional(string, null)
-    key_version      = optional(string, null)
-    # Optional: have the module create the KV access policy for the vault MI
-    key_vault_access_policy_key_vault_id = optional(string, null)
+    key_vault_resource_id  = string
+    key_name               = string
+    key_version            = optional(string, null)
     user_assigned_identity = optional(object({
       resource_id = string
     }), null)
   })
   default     = null
   description = <<DESCRIPTION
-Customer-managed key configuration for encrypting the Backup Vault.
-Provide either:
-- key_id: The full Key Vault key URL (e.g., https://mykv.vault.azure.net/keys/mykey or versioned URL)
-Or the legacy combination:
-- key_vault_key_id: The versionless Key Vault key URL (e.g., https://mykv.vault.azure.net/keys/mykey)
-- key_version: Optional specific key version to use. If omitted with a versionless URL, the latest version is used by the service.
-
-Optionally, set `key_vault_access_policy_key_vault_id` with the Key Vault resource ID to have this module create the necessary access policy for the Backup Vault's system-assigned identity (Get, WrapKey, UnwrapKey). This enables a single apply.
-
-Optionally, user_assigned_identity can be provided for scenarios where UA-Managed Identity is supported.
+Customer-managed key configuration for encrypting the Backup Vault, following the AVM interface.
+- key_vault_resource_id: The resource ID of the Key Vault containing the key.
+- key_name: The name of the Key Vault key.
+- key_version: (Optional) Specific key version. If omitted, the service uses the latest.
+- user_assigned_identity: (Optional) For future compatibility where UA-MI is supported.
 DESCRIPTION
 }
 
