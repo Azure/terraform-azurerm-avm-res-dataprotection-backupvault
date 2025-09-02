@@ -116,6 +116,7 @@ module "backup_vault" {
     }
   }
   enable_telemetry = true
+  lock = null  # Disable management lock to prevent destroy conflicts
   # Configure managed identity
   managed_identities = {
     system_assigned = true
