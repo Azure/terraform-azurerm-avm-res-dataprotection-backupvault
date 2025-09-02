@@ -44,11 +44,11 @@ resource "azurerm_resource_group" "example" {
 
 # Create a Storage Account for Blob Storage
 resource "azurerm_storage_account" "example" {
-  account_replication_type = "ZRS"
-  account_tier             = "Standard"
-  location                 = azurerm_resource_group.example.location
-  name                     = module.naming.storage_account.name_unique
-  resource_group_name      = azurerm_resource_group.example.name
+  account_replication_type        = "ZRS"
+  account_tier                    = "Standard"
+  location                        = azurerm_resource_group.example.location
+  name                            = module.naming.storage_account.name_unique
+  resource_group_name             = azurerm_resource_group.example.name
   allow_nested_items_to_be_public = false
 }
 

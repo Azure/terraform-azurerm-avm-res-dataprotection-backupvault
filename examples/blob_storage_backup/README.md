@@ -51,11 +51,12 @@ resource "azurerm_resource_group" "example" {
 
 # Create a Storage Account for Blob Storage
 resource "azurerm_storage_account" "example" {
-  account_replication_type = "ZRS"
-  account_tier             = "Standard"
-  location                 = azurerm_resource_group.example.location
-  name                     = module.naming.storage_account.name_unique
-  resource_group_name      = azurerm_resource_group.example.name
+  account_replication_type        = "ZRS"
+  account_tier                    = "Standard"
+  location                        = azurerm_resource_group.example.location
+  name                            = module.naming.storage_account.name_unique
+  resource_group_name             = azurerm_resource_group.example.name
+  allow_nested_items_to_be_public = false
 }
 
 # Create a Storage Container
@@ -132,26 +133,9 @@ module "backup_vault" {
 # Create role assignment outside the module to avoid circular dependencies
 resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   principal_id         = module.backup_vault.identity_principal_id
-  scope                = azurerm_storage_account.example.id
+  scope                = azurerm_resource_group.example.id
   description          = "Backup Contributor for Blob Storage"
   role_definition_name = "Storage Account Backup Contributor"
-}
-
-# Apply diagnostic settings to the Storage Account
-resource "azurerm_monitor_diagnostic_setting" "example" {
-  name               = "${azurerm_storage_account.example.name}-diagnostics"
-  target_resource_id = azurerm_storage_account.example.id
-  storage_account_id = azurerm_storage_account.example.id # Use the Storage Account ID directly
-
-  # Diagnostic metrics
-  metric {
-    category = "Transaction"
-    enabled  = true
-  }
-  metric {
-    category = "Capacity"
-    enabled  = true
-  }
 }
 
 
@@ -172,7 +156,6 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azurerm_monitor_diagnostic_setting.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_role_assignment.storage_account_backup_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
