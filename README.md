@@ -282,23 +282,28 @@ Default: `false`
 
 ### <a name="input_customer_managed_key"></a> [customer\_managed\_key](#input\_customer\_managed\_key)
 
-Description: A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.  
+Description: Customer-managed key configuration for encrypting the Backup Vault.  
+Provide either:
+- key\_id: The full Key Vault key URL (e.g., https://mykv.vault.azure.net/keys/mykey or versioned URL)  
+Or the legacy combination:
+- key\_vault\_key\_id: The versionless Key Vault key URL (e.g., https://mykv.vault.azure.net/keys/mykey)
+- key\_version: Optional specific key version to use. If omitted with a versionless URL, the latest version is used by the service.
 
-NOTE: Azure Data Protection Backup Vault only supports system-assigned managed identity for CMK access.   
-The user\_assigned\_identity parameter is kept for compatibility but will not be used by the backup vault resource.
+Optionally, set `key_vault_access_policy_key_vault_id` with the Key Vault resource ID to have this module create the necessary access policy for the Backup Vault's system-assigned identity (Get, WrapKey, UnwrapKey). This enables a single apply.
+
+Optionally, user\_assigned\_identity can be provided for scenarios where UA-Managed Identity is supported.
 
 Type:
 
 ```hcl
 object({
-    key_vault_resource_id = string
-    key_name              = string
-    key_version           = optional(string, null)
+    # New simplified input: full Key Vault key URL (versionless or versioned)
+    key_id = optional(string, null)
+    # Back-compat inputs
+    key_vault_key_id = optional(string, null)
+    key_version      = optional(string, null)
+    # Optional: have the module create the KV access policy for the vault MI
+    key_vault_access_policy_key_vault_id = optional(string, null)
     user_assigned_identity = optional(object({
       resource_id = string
     }), null)
