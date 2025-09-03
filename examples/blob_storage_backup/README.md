@@ -11,11 +11,11 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 3.116.0, < 5.0.0"
+      version = "~> 4.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.5"
+      version = ">= 3.5.0, < 4.0"
     }
   }
 }
@@ -27,7 +27,7 @@ provider "azurerm" {
 # Randomly select an Azure region for the resource group
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "~> 0.1"
+  version = "0.7.0"
 }
 
 resource "random_integer" "region_index" {
@@ -38,7 +38,7 @@ resource "random_integer" "region_index" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "~> 0.3"
+  version = "0.3.0"
 
   suffix = ["blob"]
 }
@@ -51,18 +51,26 @@ resource "azurerm_resource_group" "example" {
 
 # Create a Storage Account for Blob Storage
 resource "azurerm_storage_account" "example" {
-  account_replication_type = "ZRS"
-  account_tier             = "Standard"
-  location                 = azurerm_resource_group.example.location
-  name                     = module.naming.storage_account.name_unique
-  resource_group_name      = azurerm_resource_group.example.name
+  account_replication_type        = "ZRS"
+  account_tier                    = "Standard"
+  location                        = azurerm_resource_group.example.location
+  name                            = module.naming.storage_account.name_unique
+  resource_group_name             = azurerm_resource_group.example.name
+  allow_nested_items_to_be_public = false
 }
 
 # Create a Storage Container
+# NOTE: Azure Data Protection automatically applies a scope lock on the storage account
+# that prevents deletion of storage resources. This lock persists even after the backup
+# vault is destroyed. Manual cleanup may be required in the Azure portal.
 resource "azurerm_storage_container" "example" {
   name                  = "example-container"
   container_access_type = "private"
   storage_account_id    = azurerm_storage_account.example.id
+
+  lifecycle {
+    create_before_destroy = false
+  }
 }
 
 # Module Call for Backup Vault
@@ -122,6 +130,7 @@ module "backup_vault" {
     }
   }
   enable_telemetry = true
+  lock             = null # Disable management lock to prevent destroy conflicts
   # Configure managed identity
   managed_identities = {
     system_assigned = true
@@ -132,29 +141,10 @@ module "backup_vault" {
 # Create role assignment outside the module to avoid circular dependencies
 resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   principal_id         = module.backup_vault.identity_principal_id
-  scope                = azurerm_storage_account.example.id
+  scope                = azurerm_resource_group.example.id
   description          = "Backup Contributor for Blob Storage"
   role_definition_name = "Storage Account Backup Contributor"
 }
-
-# Apply diagnostic settings to the Storage Account
-resource "azurerm_monitor_diagnostic_setting" "example" {
-  name               = "${azurerm_storage_account.example.name}-diagnostics"
-  target_resource_id = azurerm_storage_account.example.id
-  storage_account_id = azurerm_storage_account.example.id # Use the Storage Account ID directly
-
-  # Diagnostic metrics
-  metric {
-    category = "Transaction"
-    enabled  = true
-  }
-  metric {
-    category = "Capacity"
-    enabled  = true
-  }
-}
-
-
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -164,15 +154,14 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.7.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.116.0, < 5.0.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
+- <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0, < 4.0)
 
 ## Resources
 
 The following resources are used by this module:
 
-- [azurerm_monitor_diagnostic_setting.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_role_assignment.storage_account_backup_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
@@ -206,13 +195,13 @@ Version:
 
 Source: Azure/naming/azurerm
 
-Version: ~> 0.3
+Version: 0.3.0
 
 ### <a name="module_regions"></a> [regions](#module\_regions)
 
 Source: Azure/avm-utl-regions/azurerm
 
-Version: ~> 0.1
+Version: 0.7.0
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection
