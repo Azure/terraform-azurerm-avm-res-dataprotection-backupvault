@@ -67,7 +67,6 @@ resource "azurerm_data_protection_backup_instance_blob_storage" "this" {
   }
 
   depends_on = [
-    azurerm_management_lock.this,
     azurerm_data_protection_backup_policy_blob_storage.this
   ]
 
