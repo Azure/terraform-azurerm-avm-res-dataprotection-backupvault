@@ -42,15 +42,15 @@ Major version Zero (0.y.z) is for initial development. Anything MAY change at an
 
 The following requirements are needed by this module:
 
-- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.7.0)
+- <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.4)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 3.116.0, < 5.0.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
 
-- <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0, < 4.0.0)
+- <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0, < 4.0)
 
 ## Resources
 
@@ -68,14 +68,15 @@ The following resources are used by this module:
 - [azurerm_data_protection_backup_policy_postgresql.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql) (resource)
 - [azurerm_data_protection_backup_policy_postgresql_flexible_server.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_policy_postgresql_flexible_server) (resource)
 - [azurerm_data_protection_backup_vault.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_vault) (resource)
+- [azurerm_data_protection_backup_vault_customer_managed_key.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_backup_vault_customer_managed_key) (resource)
 - [azurerm_data_protection_resource_guard.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/data_protection_resource_guard) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
-- [modtm_telemetry.telemetry](https://registry.terraform.io/providers/Azure/modtm/latest/docs/resources/telemetry) (resource)
+- [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
 - [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
-- [modtm_module_source.telemetry](https://registry.terraform.io/providers/Azure/modtm/latest/docs/data-sources/module_source) (data source)
+- [modtm_module_source.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/data-sources/module_source) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -281,12 +282,11 @@ Default: `false`
 
 ### <a name="input_customer_managed_key"></a> [customer\_managed\_key](#input\_customer\_managed\_key)
 
-Description: A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
+Description: Customer-managed key configuration for encrypting the Backup Vault, following the AVM interface.
+- key\_vault\_resource\_id: The resource ID of the Key Vault containing the key.
+- key\_name: The name of the Key Vault key.
+- key\_version: (Optional) Specific key version. If omitted, the service uses the latest.
+- user\_assigned\_identity: (Optional) For future compatibility where UA-MI is supported.
 
 Type:
 
@@ -613,6 +613,10 @@ Description: Map of blob backup instance IDs by instance key.
 ### <a name="output_blob_backup_policy_ids"></a> [blob\_backup\_policy\_ids](#output\_blob\_backup\_policy\_ids)
 
 Description: Map of blob backup policy IDs by policy key.
+
+### <a name="output_customer_managed_key_id"></a> [customer\_managed\_key\_id](#output\_customer\_managed\_key\_id)
+
+Description: The ID of the Customer Managed Key configuration (if enabled)
 
 ### <a name="output_disk_backup_instance_ids"></a> [disk\_backup\_instance\_ids](#output\_disk\_backup\_instance\_ids)
 
