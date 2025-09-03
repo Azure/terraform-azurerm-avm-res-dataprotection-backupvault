@@ -10,10 +10,6 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.5.0, < 4.0"
     }
-    time = {
-      source  = "hashicorp/time"
-      version = ">= 0.9.0"
-    }
   }
 }
 
@@ -62,11 +58,11 @@ resource "azurerm_storage_account" "example" {
       # Wait for Azure Backup to finish cleanup after backup instance destruction
       echo "Waiting for Azure Backup cleanup..."
       sleep 60
-      
+
       # Try to remove any lingering backup locks
       STORAGE_ACCOUNT_NAME="${self.name}"
       RG_NAME="${self.resource_group_name}"
-      
+
       echo "Checking for remaining Azure Backup locks on storage account $STORAGE_ACCOUNT_NAME..."
       az resource lock list --resource-group "$RG_NAME" --resource-name "$STORAGE_ACCOUNT_NAME" --resource-type "Microsoft.Storage/storageAccounts" --query "[?contains(name, 'AzureBackup') || contains(name, 'DoNotDelete')].{id:id, name:name}" -o tsv | while IFS=$'\t' read -r lock_id lock_name; do
         if [ -n "$lock_id" ]; then
@@ -74,10 +70,10 @@ resource "azurerm_storage_account" "example" {
           az resource lock delete --ids "$lock_id" --yes || echo "Failed to remove lock $lock_name"
         fi
       done
-      
+
       echo "Storage account cleanup completed"
     EOT
-    
+
     on_failure = continue
   }
 }
@@ -90,6 +86,8 @@ resource "azurerm_storage_container" "example" {
   name                  = "example-container"
   container_access_type = "private"
   storage_account_id    = azurerm_storage_account.example.id
+
+  depends_on = [terraform_data.backup_lock_cleanup]
 
   lifecycle {
     create_before_destroy = false
@@ -159,13 +157,6 @@ module "backup_vault" {
     system_assigned = true
   }
   soft_delete = "Off"
-
-  # Add dependency to ensure storage resources are available first
-  depends_on = [
-    azurerm_storage_account.example,
-    azurerm_storage_container.example,
-    azurerm_role_assignment.storage_account_backup_contributor
-  ]
 }
 
 # Create role assignment outside the module to avoid circular dependencies
@@ -176,18 +167,12 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   role_definition_name = "Storage Account Backup Contributor"
 }
 
-# Data source to check storage account locks after backup is destroyed
-data "azurerm_management_locks" "storage_locks" {
-  scope = azurerm_storage_account.example.id
-
-  depends_on = [module.backup_vault]
-}
-
 # Resource to handle backup lock cleanup after backup vault destruction
 resource "terraform_data" "backup_lock_cleanup" {
-  triggers_replace = [
-    module.backup_vault.resource.id
-  ]
+  triggers_replace = {
+    backup_vault_id = module.backup_vault.backup_vault_id
+    storage_account_id = azurerm_storage_account.example.id
+  }
 
   # This provisioner runs when the backup vault changes (including destruction)
   provisioner "local-exec" {
@@ -195,19 +180,19 @@ resource "terraform_data" "backup_lock_cleanup" {
     command = <<-EOT
       # Wait a bit for Azure to process backup destruction
       sleep 30
-      
+
       # Remove any remaining Azure Backup locks from storage account
-      STORAGE_ACCOUNT_ID="${azurerm_storage_account.example.id}"
-      
+      STORAGE_ACCOUNT_ID="${self.triggers_replace.storage_account_id}"
+
       # List and remove backup-related locks
       az resource lock list --resource "$STORAGE_ACCOUNT_ID" --query "[?contains(name, 'AzureBackup') || contains(name, 'DoNotDelete')].{id:id, name:name}" -o tsv | while IFS=$'\t' read -r lock_id lock_name; do
         if [ -n "$lock_id" ]; then
           echo "Removing Azure Backup lock: $lock_name ($lock_id)"
-          az resource lock delete --ids "$lock_id" --yes || true
+          az resource lock delete --ids "$lock_id" || true
         fi
       done
     EOT
-    
+
     on_failure = continue
   }
 }
