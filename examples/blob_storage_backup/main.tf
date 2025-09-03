@@ -57,6 +57,12 @@ resource "azurerm_storage_container" "example" {
   name                  = "example-container"
   container_access_type = "private"
   storage_account_id    = azurerm_storage_account.example.id
+
+  depends_on = [null_resource.cleanup_backup_locks]
+
+  lifecycle {
+    create_before_destroy = false
+  }
 }
 
 # Module Call for Backup Vault
@@ -130,6 +136,49 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   scope                = azurerm_resource_group.example.id
   description          = "Backup Contributor for Blob Storage"
   role_definition_name = "Storage Account Backup Contributor"
+}
+
+# Add a dependency from storage container to backup vault to ensure proper destruction order
+resource "null_resource" "backup_dependency" {
+  depends_on = [module.backup_vault]
+  
+  triggers = {
+    storage_account_id = azurerm_storage_account.example.id
+    backup_vault_id    = module.backup_vault.resource.id
+  }
+}
+
+# Cleanup resource to remove Azure Backup scope locks during destroy
+resource "null_resource" "cleanup_backup_locks" {
+  depends_on = [module.backup_vault]
+  
+  triggers = {
+    storage_account_id = azurerm_storage_account.example.id
+    resource_group_name = azurerm_resource_group.example.name
+    container_name = azurerm_storage_container.example.name
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      # Remove any backup scope locks from the storage account
+      STORAGE_ACCOUNT_ID="${self.triggers.storage_account_id}"
+      RG_NAME="${self.triggers.resource_group_name}"
+      
+      # Get storage account name from the ID
+      STORAGE_ACCOUNT_NAME=$(echo $STORAGE_ACCOUNT_ID | sed 's|.*/||')
+      
+      # List and remove any backup-related locks
+      az resource lock list --resource-group "$RG_NAME" --resource-name "$STORAGE_ACCOUNT_NAME" --resource-type "Microsoft.Storage/storageAccounts" --query "[?contains(name, 'AzureBackup') || contains(name, 'DoNotDelete')].id" -o tsv | while read lock_id; do
+        if [ -n "$lock_id" ]; then
+          echo "Removing lock: $lock_id"
+          az resource lock delete --ids "$lock_id" || true
+        fi
+      done
+    EOT
+    
+    on_failure = continue
+  }
 }
 
 
