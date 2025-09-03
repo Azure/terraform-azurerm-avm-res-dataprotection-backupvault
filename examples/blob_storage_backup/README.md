@@ -64,6 +64,10 @@ resource "azurerm_storage_container" "example" {
   name                  = "example-container"
   container_access_type = "private"
   storage_account_id    = azurerm_storage_account.example.id
+
+  lifecycle {
+    create_before_destroy = false
+  }
 }
 
 # Module Call for Backup Vault
@@ -139,6 +143,16 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   role_definition_name = "Storage Account Backup Contributor"
 }
 
+# Create a management lock on the storage account that we can control
+resource "azurerm_management_lock" "storage_account_lock" {
+  lock_level = "CanNotDelete"
+  name       = "backup-protection-lock"
+  scope      = azurerm_storage_account.example.id
+  notes      = "Prevents deletion during backup operations"
+
+  depends_on = [module.backup_vault]
+}
+
 
 ```
 
@@ -157,6 +171,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azurerm_management_lock.storage_account_lock](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_role_assignment.storage_account_backup_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
