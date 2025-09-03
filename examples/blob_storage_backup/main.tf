@@ -53,8 +53,7 @@ resource "azurerm_storage_account" "example" {
 
   # Add delay and cleanup for Azure Backup locks during destroy
   provisioner "local-exec" {
-    when    = destroy
-    command = <<-EOT
+    command    = <<-EOT
       # Wait for Azure Backup to finish cleanup after backup instance destruction
       echo "Waiting for Azure Backup cleanup..."
       sleep 60
@@ -73,8 +72,8 @@ resource "azurerm_storage_account" "example" {
 
       echo "Storage account cleanup completed"
     EOT
-
     on_failure = continue
+    when       = destroy
   }
 }
 
@@ -170,7 +169,7 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
 # Resource to handle backup lock cleanup after backup vault destruction
 resource "terraform_data" "backup_lock_cleanup" {
   triggers_replace = {
-    backup_vault_id = module.backup_vault.backup_vault_id
+    backup_vault_id    = module.backup_vault.backup_vault_id
     storage_account_id = azurerm_storage_account.example.id
   }
 

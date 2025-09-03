@@ -57,13 +57,43 @@ resource "azurerm_storage_account" "example" {
   name                            = module.naming.storage_account.name_unique
   resource_group_name             = azurerm_resource_group.example.name
   allow_nested_items_to_be_public = false
+
+  # Add delay and cleanup for Azure Backup locks during destroy
+  provisioner "local-exec" {
+    command    = <<-EOT
+      # Wait for Azure Backup to finish cleanup after backup instance destruction
+      echo "Waiting for Azure Backup cleanup..."
+      sleep 60
+
+      # Try to remove any lingering backup locks
+      STORAGE_ACCOUNT_NAME="${self.name}"
+      RG_NAME="${self.resource_group_name}"
+
+      echo "Checking for remaining Azure Backup locks on storage account $STORAGE_ACCOUNT_NAME..."
+      az resource lock list --resource-group "$RG_NAME" --resource-name "$STORAGE_ACCOUNT_NAME" --resource-type "Microsoft.Storage/storageAccounts" --query "[?contains(name, 'AzureBackup') || contains(name, 'DoNotDelete')].{id:id, name:name}" -o tsv | while IFS=$'\t' read -r lock_id lock_name; do
+        if [ -n "$lock_id" ]; then
+          echo "Removing Azure Backup lock: $lock_name"
+          az resource lock delete --ids "$lock_id" --yes || echo "Failed to remove lock $lock_name"
+        fi
+      done
+
+      echo "Storage account cleanup completed"
+    EOT
+    on_failure = continue
+    when       = destroy
+  }
 }
 
 # Create a Storage Container
+# Note: Due to Azure Data Protection automatically applying a scope lock on the storage account,
+# this container cannot be deleted via Terraform once backup is configured.
+# To clean up: manually remove the scope lock in Azure portal first, then run destroy.
 resource "azurerm_storage_container" "example" {
   name                  = "example-container"
   container_access_type = "private"
   storage_account_id    = azurerm_storage_account.example.id
+
+  depends_on = [terraform_data.backup_lock_cleanup]
 
   lifecycle {
     create_before_destroy = false
@@ -143,14 +173,34 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   role_definition_name = "Storage Account Backup Contributor"
 }
 
-# Create a management lock on the storage account that we can control
-resource "azurerm_management_lock" "storage_account_lock" {
-  lock_level = "CanNotDelete"
-  name       = "backup-protection-lock"
-  scope      = azurerm_storage_account.example.id
-  notes      = "Prevents deletion during backup operations"
+# Resource to handle backup lock cleanup after backup vault destruction
+resource "terraform_data" "backup_lock_cleanup" {
+  triggers_replace = {
+    backup_vault_id    = module.backup_vault.backup_vault_id
+    storage_account_id = azurerm_storage_account.example.id
+  }
 
-  depends_on = [module.backup_vault]
+  # This provisioner runs when the backup vault changes (including destruction)
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      # Wait a bit for Azure to process backup destruction
+      sleep 30
+
+      # Remove any remaining Azure Backup locks from storage account
+      STORAGE_ACCOUNT_ID="${self.triggers_replace.storage_account_id}"
+
+      # List and remove backup-related locks
+      az resource lock list --resource "$STORAGE_ACCOUNT_ID" --query "[?contains(name, 'AzureBackup') || contains(name, 'DoNotDelete')].{id:id, name:name}" -o tsv | while IFS=$'\t' read -r lock_id lock_name; do
+        if [ -n "$lock_id" ]; then
+          echo "Removing Azure Backup lock: $lock_name ($lock_id)"
+          az resource lock delete --ids "$lock_id" || true
+        fi
+      done
+    EOT
+
+    on_failure = continue
+  }
 }
 
 
@@ -171,12 +221,12 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azurerm_management_lock.storage_account_lock](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [azurerm_role_assignment.storage_account_backup_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
 - [azurerm_storage_container.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
+- [terraform_data.backup_lock_cleanup](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) (resource)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
