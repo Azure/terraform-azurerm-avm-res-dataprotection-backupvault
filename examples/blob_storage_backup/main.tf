@@ -90,7 +90,7 @@ module "backup_vault" {
     "blob-backup" = {
       type                                   = "blob"
       name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-      backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+      backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT6H"]
       operational_default_retention_duration = "P30D"
       vault_default_retention_duration       = "P90D"
       time_zone                              = "Central Standard Time"
