@@ -1,47 +1,55 @@
 # Disk Backup Policies
-resource "azurerm_data_protection_backup_policy_disk" "this" {
+resource "azapi_resource" "backup_policy_disk" {
   for_each = local.disk_policies
 
-  backup_repeating_time_intervals = each.value.backup_repeating_time_intervals
-  default_retention_duration      = each.value.default_retention_duration
-  name                            = each.value.name
-  vault_id                        = azurerm_data_protection_backup_vault.this.id
-  time_zone                       = coalesce(each.value.time_zone, "UTC")
-
-  dynamic "retention_rule" {
-    for_each = each.value.retention_rules
-
-    content {
-      duration = coalesce(retention_rule.value.duration, "P30D")
-      name     = retention_rule.value.name
-      priority = retention_rule.value.priority
-
-      dynamic "criteria" {
-        for_each = retention_rule.value.criteria
-
-        content {
-          absolute_criteria = criteria.value.absolute_criteria
+  name      = each.value.name
+  parent_id = azapi_resource.backup_vault.id
+  type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
+  body = jsonencode({
+    properties = {
+      policyRules = [{
+        name       = "BackupRule"
+        objectType = "AzureBackupRule"
+        trigger = {
+          schedule = {
+            repeatingTimeIntervals = each.value.backup_repeating_time_intervals
+          }
+          timezone = coalesce(each.value.time_zone, "UTC")
         }
+        dataStore = {
+          dataStoreType = "OperationalStore"
+          objectType    = "DataStoreInfoBase"
+        }
+      }]
+      defaultRetentionRule = {
+        name       = "Default"
+        isDefault  = true
+        objectType = "AzureRetentionRule"
+        lifeCycle = [{
+          dataStoreType = "VaultStore"
+          duration      = coalesce(each.value.default_retention_duration, "P30D")
+        }]
       }
+      retentionRules = [for rr in each.value.retention_rules : {
+        name       = rr.name
+        priority   = rr.priority
+        objectType = "AzureRetentionRule"
+        criteria = length(rr.criteria) > 0 ? {
+          absoluteCriteria = rr.criteria[0].absolute_criteria
+        } : null
+        lifeCycle = [{
+          dataStoreType = "VaultStore"
+          duration      = coalesce(rr.duration, "P30D")
+        }]
+      }]
+      datasourceTypes = ["Microsoft.Compute/disks"]
     }
-  }
-  timeouts {
-    create = var.timeout_create
-    delete = var.timeout_delete
-    read   = var.timeout_read
-  }
-}
-
-# Disk Backup Instances
-resource "azurerm_data_protection_backup_instance_disk" "this" {
-  for_each = local.disk_instances
-
-  backup_policy_id             = azurerm_data_protection_backup_policy_disk.this[each.value.backup_policy_key].id
-  disk_id                      = each.value.disk_id
-  location                     = var.location
-  name                         = each.value.name
-  snapshot_resource_group_name = each.value.snapshot_resource_group_name
-  vault_id                     = azurerm_data_protection_backup_vault.this.id
+  })
+  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  schema_validation_enabled = false
+  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create
@@ -49,8 +57,44 @@ resource "azurerm_data_protection_backup_instance_disk" "this" {
     read   = var.timeout_read
     update = var.timeout_update
   }
+}
 
-  depends_on = [azurerm_data_protection_backup_policy_disk.this]
+resource "azapi_resource" "backup_instance_disk" {
+  for_each = local.disk_instances
+
+  location  = var.location
+  name      = each.value.name
+  parent_id = azapi_resource.backup_vault.id
+  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
+  body = jsonencode({
+    properties = {
+      policyId     = azapi_resource.backup_policy_disk[each.value.backup_policy_key].id
+      friendlyName = each.value.name
+      objectType   = "BackupInstance"
+      dataSourceInfo = {
+        objectType       = "DatasourceInfo"
+        resourceId       = each.value.disk_id
+        datasourceType   = "Microsoft.Compute/disks"
+        resourceLocation = var.location
+      }
+      dataSourceSetInfo = {
+        objectType = "DatasourceSetInfo"
+        resourceId = each.value.disk_id
+      }
+    }
+  })
+  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  schema_validation_enabled = false
+  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+
+  timeouts {
+    create = var.timeout_create
+    delete = var.timeout_delete
+    read   = var.timeout_read
+    update = var.timeout_update
+  }
 
   lifecycle {
     precondition {
