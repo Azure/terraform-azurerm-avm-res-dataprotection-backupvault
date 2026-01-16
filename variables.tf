@@ -505,3 +505,9 @@ variable "timeout_update" {
   default     = "30m"
   description = "The timeout duration for updating resources."
 }
+
+variable "wait_for_backup_instance_configure_duration" {
+  type        = string
+  default     = "180s"
+  description = "Additional wait after backup instance creation to allow protection status to leave ConfiguringProtection before destroy."
+}

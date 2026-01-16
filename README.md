@@ -52,6 +52,8 @@ The following requirements are needed by this module:
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0, < 4.0)
 
+- <a name="requirement_time"></a> [time](#requirement\_time) (>= 0.9.0)
+
 ## Resources
 
 The following resources are used by this module:
@@ -75,6 +77,7 @@ The following resources are used by this module:
 - [azapi_update_resource.cmk](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/update_resource) (resource)
 - [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
+- [time_sleep.wait_for_backup_instance_disk](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
 - [azapi_client_config.current](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
 - [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
 - [azurerm_role_definition.role_defs](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/role_definition) (data source)
@@ -583,6 +586,14 @@ Possible values include: "Delete", "Update", "DisableSoftDelete", and "ChangeBac
 Type: `list(string)`
 
 Default: `[]`
+
+### <a name="input_wait_for_backup_instance_configure_duration"></a> [wait\_for\_backup\_instance\_configure\_duration](#input\_wait\_for\_backup\_instance\_configure\_duration)
+
+Description: Additional wait after backup instance creation to allow protection status to leave ConfiguringProtection before destroy.
+
+Type: `string`
+
+Default: `"180s"`
 
 ## Outputs
 

@@ -132,3 +132,11 @@ resource "azapi_resource" "backup_instance_disk" {
   }
 }
 
+resource "time_sleep" "wait_for_backup_instance_disk" {
+  for_each = azapi_resource.backup_instance_disk
+
+  create_duration = var.wait_for_backup_instance_configure_duration
+
+  depends_on = [azapi_resource.backup_instance_disk]
+}
+
