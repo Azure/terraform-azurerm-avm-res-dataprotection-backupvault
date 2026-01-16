@@ -111,6 +111,13 @@ resource "azapi_resource" "backup_instance_disk" {
   schema_validation_enabled = false
   update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
+  timeouts {
+    create = var.timeout_create
+    delete = var.timeout_delete
+    read   = var.timeout_read
+    update = var.timeout_update
+  }
+
   lifecycle {
     ignore_changes = [
       body.properties.dataSourceInfo.objectType,
@@ -122,13 +129,6 @@ resource "azapi_resource" "backup_instance_disk" {
       condition     = each.value.disk_id != null && each.value.snapshot_resource_group_name != null
       error_message = "Both disk_id and snapshot_resource_group_name must be provided for disk backup instance '${each.key}'."
     }
-  }
-
-  timeouts {
-    create = var.timeout_create
-    delete = var.timeout_delete
-    read   = var.timeout_read
-    update = var.timeout_update
   }
 }
 

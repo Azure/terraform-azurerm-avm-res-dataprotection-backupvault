@@ -132,23 +132,23 @@ resource "azapi_resource" "backup_instance_blob_storage" {
   schema_validation_enabled = false
   update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 
-  lifecycle {
-    ignore_changes = [
-      body.properties.dataSourceInfo.objectType,
-      body.properties.dataSourceSetInfo.objectType
-    ]
-    create_before_destroy = false
-
-    precondition {
-      condition     = each.value.storage_account_id != null
-      error_message = "storage_account_id must be provided for blob backup instance '${each.key}'."
-    }
-  }
-
   timeouts {
     create = var.timeout_create
     delete = var.timeout_delete
     read   = var.timeout_read
     update = var.timeout_update
+  }
+
+  lifecycle {
+    create_before_destroy = false
+    ignore_changes = [
+      body.properties.dataSourceInfo.objectType,
+      body.properties.dataSourceSetInfo.objectType
+    ]
+
+    precondition {
+      condition     = each.value.storage_account_id != null
+      error_message = "storage_account_id must be provided for blob backup instance '${each.key}'."
+    }
   }
 }

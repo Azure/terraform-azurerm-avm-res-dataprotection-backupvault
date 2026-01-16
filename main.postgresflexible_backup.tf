@@ -138,6 +138,7 @@ resource "azapi_resource" "backup_instance_postgresql_flexible_server" {
       body.properties.dataSourceInfo.objectType,
       body.properties.dataSourceSetInfo.objectType
     ]
+
     precondition {
       condition     = each.value.postgresql_flexible_server_id != null
       error_message = "postgresql_flexible_server_id must be provided for PostgreSQL Flexible backup instance '${each.key}'."
