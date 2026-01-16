@@ -125,22 +125,28 @@ resource "azapi_resource" "backup_instance_kubernetes_cluster" {
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  ignore_casing             = true
+  ignore_missing_property   = true
   ignore_null_property      = true
   read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
   update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+
+  lifecycle {
+    ignore_changes = [
+      body.properties.dataSourceInfo.objectType,
+      body.properties.dataSourceSetInfo.objectType
+    ]
+    precondition {
+      condition     = var.kubernetes_cluster_id != null
+      error_message = "kubernetes_cluster_id must be provided for direct AKS backup instance."
+    }
+  }
 
   timeouts {
     create = var.timeout_create
     delete = var.timeout_delete
     read   = var.timeout_read
     update = var.timeout_update
-  }
-
-  lifecycle {
-    precondition {
-      condition     = var.kubernetes_cluster_id != null
-      error_message = "kubernetes_cluster_id must be provided for direct AKS backup instance."
-    }
   }
 }

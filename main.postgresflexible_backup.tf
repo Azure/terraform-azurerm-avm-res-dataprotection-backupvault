@@ -77,6 +77,8 @@ resource "azapi_resource" "backup_policy_postgresql_flexible_server" {
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  ignore_casing             = true
+  ignore_missing_property   = true
   ignore_null_property      = true
   read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
@@ -117,6 +119,8 @@ resource "azapi_resource" "backup_instance_postgresql_flexible_server" {
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  ignore_casing             = true
+  ignore_missing_property   = true
   ignore_null_property      = true
   read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
@@ -130,6 +134,10 @@ resource "azapi_resource" "backup_instance_postgresql_flexible_server" {
   }
 
   lifecycle {
+    ignore_changes = [
+      body.properties.dataSourceInfo.objectType,
+      body.properties.dataSourceSetInfo.objectType
+    ]
     precondition {
       condition     = each.value.postgresql_flexible_server_id != null
       error_message = "postgresql_flexible_server_id must be provided for PostgreSQL Flexible backup instance '${each.key}'."
