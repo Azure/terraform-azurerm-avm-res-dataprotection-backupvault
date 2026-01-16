@@ -123,17 +123,18 @@ resource "azapi_resource" "backup_instance_kubernetes_cluster" {
       validationType = "ShallowValidation"
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create
     delete = var.timeout_delete
     read   = var.timeout_read
+    update = var.timeout_update
   }
 
   lifecycle {

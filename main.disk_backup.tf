@@ -57,12 +57,12 @@ resource "azapi_resource" "backup_policy_disk" {
       datasourceTypes = ["Microsoft.Compute/disks"]
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create
@@ -93,16 +93,21 @@ resource "azapi_resource" "backup_instance_disk" {
         objectType = "DatasourceSetInfo"
         resourceId = each.value.disk_id
       }
+      datasourceParameters = {
+        objectType                = "AzureBackupParams"
+        snapshotResourceGroupName = each.value.snapshot_resource_group_name
+      }
       policyInfo = {
         policyId = azapi_resource.backup_policy_disk[each.value.backup_policy_key].id
       }
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  ignore_null_property      = true
+  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create

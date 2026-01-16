@@ -79,7 +79,7 @@ resource "azapi_resource" "lock" {
 resource "azapi_resource" "role_assignments" {
   for_each = var.role_assignments
 
-  name      = uuidv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "${coalesce(each.value.scope, azapi_resource.backup_vault.id)}-${each.value.principal_id}-${each.value.role_definition_id_or_name}")
+  name      = uuidv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "${coalesce(each.value.scope, azapi_resource.backup_vault.id)}-${each.value.principal_id}-${strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? each.value.role_definition_id_or_name : data.azurerm_role_definition.role_defs[each.key].role_definition_id}")
   parent_id = coalesce(each.value.scope, azapi_resource.backup_vault.id)
   type      = "Microsoft.Authorization/roleAssignments@2022-04-01"
   body = {
