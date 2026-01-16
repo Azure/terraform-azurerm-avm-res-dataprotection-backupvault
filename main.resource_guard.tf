@@ -1,14 +1,23 @@
 # Resource Guard for added protection of backup resources
-resource "azurerm_data_protection_resource_guard" "this" {
+resource "azapi_resource" "resource_guard" {
   count = var.resource_guard_enabled ? 1 : 0
 
-  location            = var.location
-  name                = coalesce(var.resource_guard_name, "${var.name}-guard")
-  resource_group_name = var.resource_group_name
-  # Add standard tags plus any custom tags
-  tags = var.tags
-  # Optional list of operations to exclude from protection
-  vault_critical_operation_exclusion_list = var.vault_critical_operation_exclusion_list
+  location  = var.location
+  name      = coalesce(var.resource_guard_name, "${var.name}-guard")
+  parent_id = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
+  type      = "Microsoft.DataProtection/resourceGuards@2025-07-01"
+  body = {
+    properties = {
+      vaultCriticalOperationExclusionList = var.vault_critical_operation_exclusion_list
+    }
+  }
+  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  ignore_null_property      = true
+  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  schema_validation_enabled = false
+  tags                      = var.tags
+  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create
@@ -18,26 +27,26 @@ resource "azurerm_data_protection_resource_guard" "this" {
   }
 }
 
-# Associate Resource Guard with Backup Vault using azapi_resource
 resource "azapi_resource" "vault_resource_guard_association" {
   count = var.resource_guard_enabled ? 1 : 0
 
   name      = "DppResourceGuardProxy"
-  parent_id = azurerm_data_protection_backup_vault.this.id
-  type      = "Microsoft.DataProtection/backupVaults/backupResourceGuardProxies@2023-05-01"
-  body = jsonencode({
+  parent_id = azapi_resource.backup_vault.id
+  type      = "Microsoft.DataProtection/backupVaults/backupResourceGuardProxies@2025-07-01"
+  body = {
     properties = {
-      resourceGuardResourceId = azurerm_data_protection_resource_guard.this[0].id
+      resourceGuardResourceId = azapi_resource.resource_guard[0].id
     }
-  })
-  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  }
+  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  ignore_null_property      = true
+  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   depends_on = [
-    azurerm_data_protection_resource_guard.this,
-    azurerm_data_protection_backup_vault.this
+    azapi_resource.resource_guard,
+    azapi_resource.backup_vault
   ]
 }
