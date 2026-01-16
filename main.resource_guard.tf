@@ -11,9 +11,9 @@ resource "azapi_resource" "resource_guard" {
       vaultCriticalOperationExclusionList = var.vault_critical_operation_exclusion_list
     }
   }
-  ignore_null_property      = true
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  ignore_null_property      = true
   read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
   tags                      = var.tags
@@ -38,9 +38,9 @@ resource "azapi_resource" "vault_resource_guard_association" {
       resourceGuardResourceId = azapi_resource.resource_guard[0].id
     }
   }
-  ignore_null_property      = true
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  ignore_null_property      = true
   read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
   update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null

@@ -45,9 +45,9 @@ resource "azapi_resource" "backup_policy_disk" {
       datasourceTypes = ["Microsoft.Compute/disks"]
     }
   }
-  ignore_null_property      = true
   create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  ignore_null_property      = true
   read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   schema_validation_enabled = false
   update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
