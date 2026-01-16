@@ -7,14 +7,37 @@ resource "azapi_resource" "backup_policy_blob_storage" {
   type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
   body = {
     properties = {
+      objectType = "BackupPolicy"
       policyRules = [{
         name       = "BackupRule"
         objectType = "AzureBackupRule"
         trigger = {
+          objectType = "ScheduleBasedTriggerContext"
           schedule = {
             repeatingTimeIntervals = each.value.backup_repeating_time_intervals
           }
+          taggingCriteria = concat([
+            {
+              isDefault       = true
+              taggingPriority = 999
+              tagInfo = {
+                tagName = "Default"
+              }
+            }
+            ], [
+            for rr in each.value.retention_rules : {
+              isDefault       = false
+              taggingPriority = rr.priority
+              tagInfo = {
+                tagName = rr.name
+              }
+            }
+          ])
           timezone = coalesce(each.value.time_zone, "UTC")
+        }
+        backupParameters = {
+          objectType = "AzureBackupParams"
+          backupType = "Snapshot"
         }
         dataStore = {
           dataStoreType = "OperationalStore"

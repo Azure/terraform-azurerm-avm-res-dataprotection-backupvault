@@ -7,41 +7,53 @@ resource "azapi_resource" "backup_policy_disk" {
   type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
   body = {
     properties = {
-      policyRules = [{
-        name       = "BackupRule"
-        objectType = "AzureBackupRule"
-        trigger = {
-          schedule = {
-            repeatingTimeIntervals = each.value.backup_repeating_time_intervals
+      objectType = "BackupPolicy"
+      policyRules = [
+        {
+          name       = "BackupRule"
+          objectType = "AzureBackupRule"
+          trigger = {
+            objectType = "ScheduleBasedTriggerContext"
+            schedule = {
+              repeatingTimeIntervals = each.value.backup_repeating_time_intervals
+            }
+            taggingCriteria = [
+              {
+                isDefault       = true
+                taggingPriority = 99
+                tagInfo = {
+                  id      = "Default_"
+                  tagName = "Default"
+                }
+              }
+            ]
+            timezone = coalesce(each.value.time_zone, "UTC")
           }
-          timezone = coalesce(each.value.time_zone, "UTC")
+          backupParameters = {
+            objectType = "AzureBackupParams"
+            backupType = "Incremental"
+          }
+          dataStore = {
+            dataStoreType = "OperationalStore"
+            objectType    = "DataStoreInfoBase"
+          }
+        },
+        {
+          name       = "Default"
+          isDefault  = true
+          objectType = "AzureRetentionRule"
+          lifecycles = [{
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = coalesce(each.value.default_retention_duration, "P30D")
+            }
+            sourceDataStore = {
+              dataStoreType = "OperationalStore"
+              objectType    = "DataStoreInfoBase"
+            }
+          }]
         }
-        dataStore = {
-          dataStoreType = "OperationalStore"
-          objectType    = "DataStoreInfoBase"
-        }
-      }]
-      defaultRetentionRule = {
-        name       = "Default"
-        isDefault  = true
-        objectType = "AzureRetentionRule"
-        lifeCycle = [{
-          dataStoreType = "VaultStore"
-          duration      = coalesce(each.value.default_retention_duration, "P30D")
-        }]
-      }
-      retentionRules = [for rr in each.value.retention_rules : {
-        name       = rr.name
-        priority   = rr.priority
-        objectType = "AzureRetentionRule"
-        criteria = length(rr.criteria) > 0 ? {
-          absoluteCriteria = rr.criteria[0].absolute_criteria
-        } : null
-        lifeCycle = [{
-          dataStoreType = "VaultStore"
-          duration      = coalesce(rr.duration, "P30D")
-        }]
-      }]
+      ]
       datasourceTypes = ["Microsoft.Compute/disks"]
     }
   }
@@ -67,11 +79,10 @@ resource "azapi_resource" "backup_instance_disk" {
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
-  body = jsonencode({
+  body = {
     properties = {
-      policyId     = azapi_resource.backup_policy_disk[each.value.backup_policy_key].id
-      friendlyName = each.value.name
       objectType   = "BackupInstance"
+      friendlyName = each.value.name
       dataSourceInfo = {
         objectType       = "DatasourceInfo"
         resourceId       = each.value.disk_id
@@ -82,8 +93,11 @@ resource "azapi_resource" "backup_instance_disk" {
         objectType = "DatasourceSetInfo"
         resourceId = each.value.disk_id
       }
+      policyInfo = {
+        policyId = azapi_resource.backup_policy_disk[each.value.backup_policy_key].id
+      }
     }
-  })
+  }
   create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
