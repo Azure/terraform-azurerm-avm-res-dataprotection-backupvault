@@ -94,6 +94,7 @@ resource "azapi_resource" "backup_instance_kubernetes_cluster" {
         includedResourceTypes         = try(var.backup_datasource_parameters.included_resource_types, [])
         labelSelectors                = try(var.backup_datasource_parameters.label_selectors, [])
         volumeSnapshotEnabled         = try(var.backup_datasource_parameters.volume_snapshot_enabled, false)
+        snapshotResourceGroupName     = var.snapshot_resource_group_name
       }
       validationType = "ShallowValidation"
     }
