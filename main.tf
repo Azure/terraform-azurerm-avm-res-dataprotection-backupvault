@@ -44,8 +44,8 @@ resource "azapi_resource" "backup_vault" {
     for_each = (var.managed_identities.system_assigned || length(try(var.managed_identities.user_assigned_resource_ids, [])) > 0) ? [1] : []
 
     content {
-      type         = var.managed_identities.system_assigned && length(try(var.managed_identities.user_assigned_resource_ids, [])) > 0 ? "SystemAssigned,UserAssigned" : var.managed_identities.system_assigned ? "SystemAssigned" : "UserAssigned"
-      identity_ids = try(var.managed_identities.user_assigned_resource_ids, [])
+      type         = var.managed_identities.system_assigned && length(try(var.managed_identities.user_assigned_resource_ids, [])) > 0 ? "SystemAssigned, UserAssigned" : var.managed_identities.system_assigned ? "SystemAssigned" : "UserAssigned"
+      identity_ids = length(try(var.managed_identities.user_assigned_resource_ids, [])) > 0 ? var.managed_identities.user_assigned_resource_ids : null
     }
   }
   timeouts {
