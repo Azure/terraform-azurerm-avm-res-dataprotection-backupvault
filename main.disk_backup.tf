@@ -5,7 +5,7 @@ resource "azapi_resource" "backup_policy_disk" {
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
-  body = jsonencode({
+  body = {
     properties = {
       policyRules = [{
         name       = "BackupRule"
@@ -44,7 +44,8 @@ resource "azapi_resource" "backup_policy_disk" {
       }]
       datasourceTypes = ["Microsoft.Compute/disks"]
     }
-  })
+  }
+  ignore_null_property      = true
   create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null

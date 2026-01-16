@@ -5,7 +5,7 @@ resource "azapi_resource" "backup_policy_kubernetes_cluster" {
   name      = var.kubernetes_backup_policy_name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
-  body = jsonencode({
+  body = {
     properties = {
       policyRules = [{
         name       = "BackupRule"
@@ -47,7 +47,8 @@ resource "azapi_resource" "backup_policy_kubernetes_cluster" {
       }]
       datasourceTypes = ["Microsoft.ContainerService/managedClusters"]
     }
-  })
+  }
+  ignore_null_property      = true
   create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
@@ -69,7 +70,7 @@ resource "azapi_resource" "backup_instance_kubernetes_cluster" {
   name      = var.kubernetes_backup_instance_name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
-  body = jsonencode({
+  body = {
     properties = {
       policyId     = length(azapi_resource.backup_policy_kubernetes_cluster) > 0 ? azapi_resource.backup_policy_kubernetes_cluster[0].id : null
       friendlyName = var.kubernetes_backup_instance_name
@@ -98,7 +99,8 @@ resource "azapi_resource" "backup_instance_kubernetes_cluster" {
       }
       validationType = "ShallowValidation"
     }
-  })
+  }
+  ignore_null_property      = true
   create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null

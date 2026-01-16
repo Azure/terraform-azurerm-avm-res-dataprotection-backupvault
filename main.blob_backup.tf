@@ -5,7 +5,7 @@ resource "azapi_resource" "backup_policy_blob_storage" {
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
-  body = jsonencode({
+  body = {
     properties = {
       policyRules = [{
         name       = "BackupRule"
@@ -55,7 +55,8 @@ resource "azapi_resource" "backup_policy_blob_storage" {
       }]
       datasourceTypes = ["Microsoft.Storage/storageAccounts/blobServices"]
     }
-  })
+  }
+  ignore_null_property      = true
   create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
@@ -77,7 +78,7 @@ resource "azapi_resource" "backup_instance_blob_storage" {
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
-  body = jsonencode({
+  body = {
     properties = {
       policyId     = azapi_resource.backup_policy_blob_storage[each.value.backup_policy_key].id
       friendlyName = each.value.name
@@ -96,7 +97,8 @@ resource "azapi_resource" "backup_instance_blob_storage" {
       policyInfo     = null
       validationType = "ShallowValidation"
     }
-  })
+  }
+  ignore_null_property      = true
   create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
