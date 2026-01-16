@@ -79,14 +79,14 @@ resource "azapi_resource" "backup_policy_blob_storage" {
       datasourceTypes = ["Microsoft.Storage/storageAccounts/blobServices"]
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create
@@ -123,14 +123,14 @@ resource "azapi_resource" "backup_instance_blob_storage" {
       validationType = "ShallowValidation"
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create
