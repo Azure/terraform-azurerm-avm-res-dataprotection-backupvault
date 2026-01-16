@@ -120,7 +120,7 @@ Azure CLI output:
 # Before
 type = "SystemAssigned,UserAssigned"
 
-# After  
+# After
 type = "SystemAssigned, UserAssigned"
 ```
 
@@ -196,7 +196,7 @@ The following existing examples already use managed identity:
 ```hcl
 module "backup_vault" {
   source = "Azure/avm-res-dataprotection-backupvault/azurerm"
-  
+
   managed_identities = {
     system_assigned = true
   }
@@ -208,7 +208,7 @@ module "backup_vault" {
 ```hcl
 module "backup_vault" {
   source = "Azure/avm-res-dataprotection-backupvault/azurerm"
-  
+
   managed_identities = {
     system_assigned            = false
     user_assigned_resource_ids = [
@@ -223,7 +223,7 @@ module "backup_vault" {
 ```hcl
 module "backup_vault" {
   source = "Azure/avm-res-dataprotection-backupvault/azurerm"
-  
+
   managed_identities = {
     system_assigned            = true
     user_assigned_resource_ids = [
@@ -261,8 +261,8 @@ The feature request is **ALREADY FULLY IMPLEMENTED**. The only changes made were
 
 ---
 
-**Status:** ✅ Verified and tested with Azure Data Protection API 2025-07-01  
-**Test Date:** January 16, 2026  
-**API Validation:** Passed ✅  
-**Deployment Test:** Passed ✅  
+**Status:** ✅ Verified and tested with Azure Data Protection API 2025-07-01
+**Test Date:** January 16, 2026
+**API Validation:** Passed ✅
+**Deployment Test:** Passed ✅
 **Cleanup Test:** Passed ✅
