@@ -121,8 +121,7 @@ resource "azapi_resource" "backup_instance_disk" {
   lifecycle {
     ignore_changes = [
       body.properties.dataSourceInfo.objectType,
-      body.properties.dataSourceSetInfo.objectType,
-      output
+      body.properties.dataSourceSetInfo.objectType
     ]
 
     precondition {

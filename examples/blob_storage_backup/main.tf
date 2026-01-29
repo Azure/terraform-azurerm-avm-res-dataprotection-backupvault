@@ -88,12 +88,11 @@ module "backup_vault" {
   # Define backup policy
   backup_policies = {
     "blob-backup" = {
-      type                                   = "blob"
-      name                                   = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
-      backup_repeating_time_intervals        = ["R/2024-09-17T06:33:16+00:00/PT4H"]
-      operational_default_retention_duration = "P30D"
-      vault_default_retention_duration       = "P90D"
-      time_zone                              = "Central Standard Time"
+      type                             = "blob"
+      name                             = "${module.naming.recovery_services_vault.name_unique}-backup-policy"
+      backup_repeating_time_intervals  = ["R/2024-09-17T06:33:16+00:00/P1D"]
+      vault_default_retention_duration = "P90D"
+      time_zone                        = "Central Standard Time"
       retention_rules = [
         {
           name     = "Daily"
