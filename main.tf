@@ -132,8 +132,7 @@ resource "azapi_resource" "diagnostic_settings" {
 
   lifecycle {
     ignore_changes = [
-      body.properties.logs,
-      output
+      body.properties.logs
     ]
   }
 }

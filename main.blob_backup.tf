@@ -8,74 +8,99 @@ resource "azapi_resource" "backup_policy_blob_storage" {
   body = {
     properties = {
       objectType = "BackupPolicy"
-      policyRules = [{
-        name       = "BackupRule"
-        objectType = "AzureBackupRule"
-        trigger = {
-          objectType = "ScheduleBasedTriggerContext"
-          schedule = {
-            repeatingTimeIntervals = each.value.backup_repeating_time_intervals
+      policyRules = concat(
+        # Default Retention Rule (VaultStore)
+        [{
+          name       = "Default"
+          isDefault  = true
+          objectType = "AzureRetentionRule"
+          lifecycles = [{
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = coalesce(each.value.vault_default_retention_duration, "P30D")
+            }
+            sourceDataStore = {
+              dataStoreType = "VaultStore"
+              objectType    = "DataStoreInfoBase"
+            }
+            targetDataStoreCopySettings = []
+          }]
+        }],
+        # Additional Retention Rules
+        [for rr in each.value.retention_rules : {
+          name       = rr.name
+          isDefault  = false
+          objectType = "AzureRetentionRule"
+          lifecycles = length(rr.life_cycle) > 0 ? [for lc in rr.life_cycle : {
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = lc.duration
+            }
+            sourceDataStore = {
+              dataStoreType = lc.data_store_type
+              objectType    = "DataStoreInfoBase"
+            }
+            targetDataStoreCopySettings = []
+            }] : [{
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = rr.duration
+            }
+            sourceDataStore = {
+              dataStoreType = "VaultStore"
+              objectType    = "DataStoreInfoBase"
+            }
+            targetDataStoreCopySettings = []
+          }]
+        }],
+        # Backup Rule
+        [{
+          name       = "BackupDaily"
+          objectType = "AzureBackupRule"
+          backupParameters = {
+            objectType = "AzureBackupParams"
+            backupType = "Discrete"
           }
-          taggingCriteria = concat([
-            {
-              isDefault       = true
-              taggingPriority = 999
-              tagInfo = {
-                tagName = "Default"
-              }
+          dataStore = {
+            dataStoreType = "VaultStore"
+            objectType    = "DataStoreInfoBase"
+          }
+          trigger = {
+            objectType = "ScheduleBasedTriggerContext"
+            schedule = {
+              timeZone               = coalesce(each.value.time_zone, "UTC")
+              repeatingTimeIntervals = each.value.backup_repeating_time_intervals
             }
-            ], [
-            for rr in each.value.retention_rules : {
-              isDefault       = false
-              taggingPriority = rr.priority
-              tagInfo = {
-                tagName = rr.name
+            taggingCriteria = concat([
+              {
+                isDefault       = true
+                taggingPriority = 99
+                tagInfo = {
+                  id      = "Default_"
+                  tagName = "Default"
+                }
               }
-            }
-          ])
-          timezone = coalesce(each.value.time_zone, "UTC")
-        }
-        backupParameters = {
-          objectType = "AzureBackupParams"
-          backupType = "Snapshot"
-        }
-        dataStore = {
-          dataStoreType = "OperationalStore"
-          objectType    = "DataStoreInfoBase"
-        }
-      }]
-      defaultRetentionRule = {
-        name       = "Default"
-        isDefault  = true
-        objectType = "AzureRetentionRule"
-        lifeCycle = [{
-          dataStoreType = "OperationalStore"
-          duration      = coalesce(each.value.operational_default_retention_duration, "P7D")
-          }, {
-          dataStoreType = "VaultStore"
-          duration      = coalesce(each.value.vault_default_retention_duration, "P30D")
+              ], [
+              for rr in each.value.retention_rules : {
+                isDefault       = false
+                taggingPriority = rr.priority
+                tagInfo = {
+                  tagName = rr.name
+                }
+                criteria = length(rr.criteria) > 0 ? [for c in rr.criteria : {
+                  objectType       = "ScheduleBasedBackupCriteria"
+                  absoluteCriteria = c.absolute_criteria != null ? [c.absolute_criteria] : null
+                  daysOfTheWeek    = c.days_of_week
+                  daysOfMonth      = c.days_of_month != null ? [for d in c.days_of_month : { date = d, isLast = false }] : null
+                  monthsOfYear     = c.months_of_year
+                  scheduleTimes    = c.scheduled_backup_times
+                  weeksOfTheMonth  = c.weeks_of_month
+                }] : null
+              }
+            ])
+          }
         }]
-      }
-      retentionRules = [for rr in each.value.retention_rules : {
-        name       = rr.name
-        priority   = rr.priority
-        objectType = "AzureRetentionRule"
-        criteria = length(rr.criteria) > 0 ? {
-          absoluteCriteria     = rr.criteria[0].absolute_criteria
-          daysOfMonth          = rr.criteria[0].days_of_month
-          daysOfWeek           = rr.criteria[0].days_of_week
-          monthsOfYear         = rr.criteria[0].months_of_year
-          scheduledBackupTimes = rr.criteria[0].scheduled_backup_times
-          weeksOfMonth         = rr.criteria[0].weeks_of_month
-        } : null
-        lifeCycle = length(rr.life_cycle) > 0 ? [for lc in rr.life_cycle : {
-          dataStoreType = lc.data_store_type
-          duration      = lc.duration
-          }] : [{
-          dataStoreType = "VaultStore"
-          duration      = rr.duration
-        }]
-      }]
+      )
       datasourceTypes = ["Microsoft.Storage/storageAccounts/blobServices"]
     }
   }
@@ -105,22 +130,28 @@ resource "azapi_resource" "backup_instance_blob_storage" {
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
   body = {
     properties = {
-      policyId     = azapi_resource.backup_policy_blob_storage[each.value.backup_policy_key].id
       friendlyName = each.value.name
       objectType   = "BackupInstance"
       dataSourceInfo = {
-        objectType       = "DatasourceInfo"
-        resourceId       = each.value.storage_account_id
+        objectType       = "Datasource"
+        resourceID       = each.value.storage_account_id
         datasourceType   = "Microsoft.Storage/storageAccounts/blobServices"
         resourceLocation = var.location
       }
-      datasourceAuthCredentials = null
       dataSourceSetInfo = {
         objectType = "DatasourceSetInfo"
         resourceId = each.value.storage_account_id
       }
-      policyInfo     = null
-      validationType = "ShallowValidation"
+      policyInfo = {
+        policyId = azapi_resource.backup_policy_blob_storage[each.value.backup_policy_key].id
+        policyParameters = {
+          dataStoreParametersList = []
+          backupDatasourceParametersList = [{
+            objectType     = "BlobBackupDatasourceParameters"
+            containersList = each.value.storage_account_container_names
+          }]
+        }
+      }
     }
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
