@@ -131,47 +131,62 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  # Specify backup datasource parameters
-  backup_datasource_parameters = {
-    excluded_namespaces              = ["kube-system", "kube-public"]
-    included_namespaces              = ["default", "app-namespace"]
-    cluster_scoped_resources_enabled = true
-    volume_snapshot_enabled          = true
+  backup_instances = {
+    aks = {
+      type                         = "kubernetes"
+      name                         = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
+      backup_policy_key            = "aks"
+      kubernetes_cluster_id        = azurerm_kubernetes_cluster.example.id
+      snapshot_resource_group_name = azurerm_resource_group.snap.name
+      backup_datasource_parameters = {
+        excluded_namespaces              = ["kube-system", "kube-public"]
+        included_namespaces              = ["default", "app-namespace"]
+        cluster_scoped_resources_enabled = true
+        volume_snapshot_enabled          = true
+      }
+    }
   }
-  backup_repeating_time_intervals = ["R/2024-12-01T02:30:00+00:00/P1W"]
-  # AKS default retention configuration
-  default_retention_life_cycle = {
-    data_store_type = "OperationalStore"
-    duration        = "P14D"
+  backup_policies = {
+    aks = {
+      type = "kubernetes"
+      name = "${module.naming.kubernetes_cluster.name_unique}-policy"
+
+      backup_repeating_time_intervals = ["R/2024-12-01T02:30:00+00:00/P1W"]
+      time_zone                       = "UTC"
+
+      default_retention_life_cycle = {
+        data_store_type = "OperationalStore"
+        duration        = "P14D"
+      }
+
+      retention_rules = [
+        {
+          name     = "Weekly"
+          priority = 25
+          duration = "P84D"
+          criteria = [
+            {
+              absolute_criteria = "FirstOfWeek"
+            }
+          ]
+        },
+        {
+          name     = "Monthly"
+          priority = 20
+          duration = "P365D"
+          criteria = [
+            {
+              absolute_criteria = "FirstOfMonth"
+            }
+          ]
+        }
+      ]
+    }
   }
   enable_telemetry = true
-  # AKS backup instance configuration
-  kubernetes_backup_instance_name = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
-  # AKS backup policy configuration
-  kubernetes_backup_policy_name = "${module.naming.kubernetes_cluster.name_unique}-policy"
-  kubernetes_cluster_id         = azurerm_kubernetes_cluster.example.id
-  # Additional retention rules
-  kubernetes_retention_rules = [
-    {
-      name              = "Weekly"
-      priority          = 25
-      absolute_criteria = "FirstOfWeek"
-      data_store_type   = "OperationalStore"
-      duration          = "P84D"
-    },
-    {
-      name              = "Monthly"
-      priority          = 20
-      absolute_criteria = "FirstOfMonth"
-      data_store_type   = "OperationalStore"
-      duration          = "P365D"
-    }
-  ]
   managed_identities = {
     system_assigned = true
   }
-  snapshot_resource_group_name = azurerm_resource_group.snap.name
-  time_zone                    = "UTC"
 
   depends_on = [time_sleep.wait_for_extension]
 }
