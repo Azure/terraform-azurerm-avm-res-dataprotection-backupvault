@@ -1,16 +1,11 @@
 # Required AVM resources interfaces
 data "azapi_client_config" "current" {}
-
-data "azurerm_role_definition" "role_defs" {
-  for_each = { for k, v in var.role_assignments : k => v if !strcontains(lower(v.role_definition_id_or_name), lower(local.role_definition_resource_substring)) }
-
-  name = each.value.role_definition_id_or_name
-}
+data "azurerm_client_config" "current" {}
 
 resource "azapi_resource" "backup_vault" {
   location  = var.location
   name      = var.name
-  parent_id = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
+  parent_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
   type      = "Microsoft.DataProtection/backupVaults@2025-07-01"
   body = {
     properties = {
@@ -76,29 +71,19 @@ resource "azapi_resource" "lock" {
   update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 }
 
-resource "azapi_resource" "role_assignments" {
+resource "azurerm_role_assignment" "role_assignments" {
   for_each = var.role_assignments
 
-  name      = uuidv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "${coalesce(each.value.scope, azapi_resource.backup_vault.id)}-${each.value.principal_id}-${strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? each.value.role_definition_id_or_name : data.azurerm_role_definition.role_defs[each.key].role_definition_id}")
-  parent_id = coalesce(each.value.scope, azapi_resource.backup_vault.id)
-  type      = "Microsoft.Authorization/roleAssignments@2022-04-01"
-  body = {
-    properties = {
-      roleDefinitionId                   = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? each.value.role_definition_id_or_name : data.azurerm_role_definition.role_defs[each.key].role_definition_id
-      principalId                        = each.value.principal_id == "system-assigned" ? try(azapi_resource.backup_vault.identity[0].principal_id, null) : each.value.principal_id
-      principalType                      = each.value.principal_type
-      scope                              = coalesce(each.value.scope, azapi_resource.backup_vault.id)
-      condition                          = each.value.condition
-      conditionVersion                   = each.value.condition_version
-      delegatedManagedIdentityResourceId = each.value.delegated_managed_identity_resource_id
-    }
-  }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  principal_id                           = each.value.principal_id == "system-assigned" ? try(azapi_resource.backup_vault.identity[0].principal_id, null) : each.value.principal_id
+  scope                                  = coalesce(each.value.scope, azapi_resource.backup_vault.id)
+  condition                              = each.value.condition
+  condition_version                      = each.value.condition_version
+  delegated_managed_identity_resource_id = each.value.delegated_managed_identity_resource_id
+  description                            = each.value.description
+  principal_type                         = each.value.principal_type
+  role_definition_id                     = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? each.value.role_definition_id_or_name : null
+  role_definition_name                   = strcontains(lower(each.value.role_definition_id_or_name), lower(local.role_definition_resource_substring)) ? null : each.value.role_definition_id_or_name
+  skip_service_principal_aad_check       = each.value.skip_service_principal_aad_check
 }
 
 resource "azapi_resource" "diagnostic_settings" {

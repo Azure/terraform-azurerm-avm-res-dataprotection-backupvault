@@ -8,7 +8,7 @@ output "backup_instance_ids" {
     { for k, v in azapi_resource.backup_instance_blob_storage : k => v.id },
     { for k, v in azapi_resource.backup_instance_kubernetes_cluster : k => v.id },
     { for k, v in azapi_resource.backup_instance_postgresql : k => v.id },
-    { for k, v in azapi_resource.backup_instance_postgresql_flexible_server : k => v.id }
+    module.postgresql_flexible.backup_instance_ids
   )
 }
 
@@ -19,7 +19,7 @@ output "backup_policy_ids" {
     { for k, v in azapi_resource.backup_policy_blob_storage : k => v.id },
     { for k, v in azapi_resource.backup_policy_kubernetes_cluster : k => v.id },
     { for k, v in azapi_resource.backup_policy_postgresql : k => v.id },
-    { for k, v in azapi_resource.backup_policy_postgresql_flexible_server : k => v.id }
+    module.postgresql_flexible.backup_policy_ids
   )
 }
 
@@ -100,22 +100,22 @@ output "postgresql_backup_policy_ids" {
 
 output "postgresql_flexible_backup_instance_id" {
   description = "(DEPRECATED) The ID of the created PostgreSQL Flexible Server Backup Instance. Use backup_instance_ids instead."
-  value       = try(values(azapi_resource.backup_instance_postgresql_flexible_server)[0].id, null)
+  value       = try(values(module.postgresql_flexible.backup_instance_ids)[0], null)
 }
 
 output "postgresql_flexible_backup_instance_ids" {
   description = "Map of PostgreSQL Flexible backup instance IDs by instance key."
-  value       = { for k, v in azapi_resource.backup_instance_postgresql_flexible_server : k => v.id }
+  value       = module.postgresql_flexible.backup_instance_ids
 }
 
 output "postgresql_flexible_backup_policy_id" {
   description = "(DEPRECATED) The ID of the created PostgreSQL Flexible Server Backup Policy. Use backup_policy_ids instead."
-  value       = try(values(azapi_resource.backup_policy_postgresql_flexible_server)[0].id, null)
+  value       = try(values(module.postgresql_flexible.backup_policy_ids)[0], null)
 }
 
 output "postgresql_flexible_backup_policy_ids" {
   description = "Map of PostgreSQL Flexible backup policy IDs by policy key."
-  value       = { for k, v in azapi_resource.backup_policy_postgresql_flexible_server : k => v.id }
+  value       = module.postgresql_flexible.backup_policy_ids
 }
 
 output "resource_guard_id" {
