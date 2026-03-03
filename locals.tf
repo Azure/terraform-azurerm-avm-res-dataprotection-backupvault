@@ -1,6 +1,8 @@
 # Locals for organizing backup policies and instances by type
 locals {
   # Validation: ensure all backup instances reference existing backup policies
+  adls_instances = { for k, v in var.backup_instances : k => v if v.type == "adls" }
+  adls_policies  = { for k, v in var.backup_policies : k => v if v.type == "adls" }
   blob_instances = { for k, v in var.backup_instances : k => v if v.type == "blob" }
   blob_policies  = { for k, v in var.backup_policies : k => v if v.type == "blob" }
   # Organize backup instances by type
