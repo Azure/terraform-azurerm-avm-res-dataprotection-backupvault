@@ -17,6 +17,10 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.5.0, < 4.0"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = ">= 0.9.0, < 1.0"
+    }
   }
 }
 
@@ -147,6 +151,16 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   description          = "Backup Contributor for ADLS Gen2 Storage"
   role_definition_name = "Storage Account Backup Contributor"
 }
+
+# Wait for Azure to finish configuring backup protection before allowing destroy.
+# Azure Data Protection backup instances transition asynchronously through
+# ConfiguringProtection status after creation. Attempting to delete during this
+# state returns a 400 error.
+resource "time_sleep" "wait_for_backup_protection" {
+  destroy_duration = "120s"
+
+  depends_on = [module.backup_vault]
+}
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -160,6 +174,8 @@ The following requirements are needed by this module:
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0, < 4.0)
 
+- <a name="requirement_time"></a> [time](#requirement\_time) (>= 0.9.0, < 1.0)
+
 ## Resources
 
 The following resources are used by this module:
@@ -169,6 +185,7 @@ The following resources are used by this module:
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
 - [azurerm_storage_container.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
+- [time_sleep.wait_for_backup_protection](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs

@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.5.0, < 4.0"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = ">= 0.9.0, < 1.0"
+    }
   }
 }
 
@@ -139,4 +143,14 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   scope                = azurerm_resource_group.example.id
   description          = "Backup Contributor for ADLS Gen2 Storage"
   role_definition_name = "Storage Account Backup Contributor"
+}
+
+# Wait for Azure to finish configuring backup protection before allowing destroy.
+# Azure Data Protection backup instances transition asynchronously through
+# ConfiguringProtection status after creation. Attempting to delete during this
+# state returns a 400 error.
+resource "time_sleep" "wait_for_backup_protection" {
+  destroy_duration = "120s"
+
+  depends_on = [module.backup_vault]
 }
