@@ -116,7 +116,6 @@ resource "azapi_resource" "backup_instance_postgresql_flexible_server" {
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
   body = {
     properties = {
-      policyId     = azapi_resource.backup_policy_postgresql_flexible_server[each.value.backup_policy_key].id
       friendlyName = each.value.name
       objectType   = "BackupInstance"
       dataSourceInfo = {
@@ -128,6 +127,9 @@ resource "azapi_resource" "backup_instance_postgresql_flexible_server" {
       dataSourceSetInfo = {
         objectType = "DatasourceSetInfo"
         resourceId = each.value.postgresql_flexible_server_id
+      }
+      policyInfo = {
+        policyId = azapi_resource.backup_policy_postgresql_flexible_server[each.value.backup_policy_key].id
       }
       validationType = "ShallowValidation"
     }
