@@ -17,6 +17,10 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.5.0, < 4.0"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = ">= 0.9.0, < 1.0"
+    }
   }
 }
 
@@ -142,6 +146,17 @@ module "backup_vault" {
     }
   }
 }
+
+# Wait for Azure to finish configuring backup protection before allowing destroy.
+# Azure Data Protection backup instances transition asynchronously through
+# ConfiguringProtection status after creation. Attempting to delete during this
+# state returns a 400 error. This sleep is destroyed first (due to depends_on),
+# giving Azure time to complete the transition.
+resource "time_sleep" "wait_for_backup_protection" {
+  destroy_duration = "120s"
+
+  depends_on = [module.backup_vault]
+}
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -155,6 +170,8 @@ The following requirements are needed by this module:
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0, < 4.0)
 
+- <a name="requirement_time"></a> [time](#requirement\_time) (>= 0.9.0, < 1.0)
+
 ## Resources
 
 The following resources are used by this module:
@@ -163,6 +180,7 @@ The following resources are used by this module:
 - [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 - [random_password.postgres_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) (resource)
+- [time_sleep.wait_for_backup_protection](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
