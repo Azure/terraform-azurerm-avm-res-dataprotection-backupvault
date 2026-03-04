@@ -7,72 +7,87 @@ resource "azapi_resource" "backup_policy_postgresql_flexible_server" {
   type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
   body = {
     properties = {
-      objectType = "BackupPolicy"
-      policyRules = [{
-        name       = "BackupRule"
-        objectType = "AzureBackupRule"
-        trigger = {
-          objectType = "ScheduleBasedTriggerContext"
-          schedule = {
-            repeatingTimeIntervals = each.value.backup_repeating_time_intervals
-          }
-          taggingCriteria = concat([
-            {
-              isDefault       = true
-              taggingPriority = 999
-              tagInfo = {
-                tagName = "Default"
-              }
-            }
-            ], [
-            for rr in each.value.retention_rules : {
-              isDefault       = false
-              taggingPriority = rr.priority
-              tagInfo = {
-                tagName = rr.name
-              }
-            }
-          ])
-          timezone = coalesce(each.value.time_zone, "UTC")
-        }
-        backupParameters = {
-          objectType = "AzureBackupParams"
-          backupType = "Full"
-        }
-        dataStore = {
-          dataStoreType = "OperationalStore"
-          objectType    = "DataStoreInfoBase"
-        }
-      }]
-      defaultRetentionRule = {
-        name       = "Default"
-        isDefault  = true
-        objectType = "AzureRetentionRule"
-        lifeCycle = [{
-          dataStoreType = "VaultStore"
-          duration      = each.value.default_retention_duration
-        }]
-      }
-      retentionRules = [for rr in each.value.retention_rules : {
-        name       = rr.name
-        priority   = rr.priority
-        objectType = "AzureRetentionRule"
-        criteria = {
-          absoluteCriteria     = rr.criteria[0].absolute_criteria
-          daysOfWeek           = rr.criteria[0].days_of_week
-          monthsOfYear         = rr.criteria[0].months_of_year
-          scheduledBackupTimes = rr.criteria[0].scheduled_backup_times
-          weeksOfMonth         = rr.criteria[0].weeks_of_month
-        }
-        lifeCycle = length(rr.life_cycle) > 0 ? [for lc in rr.life_cycle : {
-          dataStoreType = lc.data_store_type
-          duration      = lc.duration
-          }] : [{
-          dataStoreType = "VaultStore"
-          duration      = each.value.default_retention_duration
-        }]
-      }]
+      objectType      = "BackupPolicy"
       datasourceTypes = ["Microsoft.DBforPostgreSQL/flexibleServers"]
+      policyRules = concat(
+        # Backup schedule rule
+        [{
+          name       = "BackupRule"
+          objectType = "AzureBackupRule"
+          trigger = {
+            objectType = "ScheduleBasedTriggerContext"
+            schedule = {
+              timeZone               = coalesce(each.value.time_zone, "UTC")
+              repeatingTimeIntervals = each.value.backup_repeating_time_intervals
+            }
+            taggingCriteria = concat(
+              [for rr in each.value.retention_rules : {
+                isDefault       = false
+                taggingPriority = rr.priority
+                tagInfo = {
+                  id      = "${rr.name}_"
+                  tagName = rr.name
+                }
+                criteria = [for c in rr.criteria : {
+                  objectType       = "ScheduleBasedBackupCriteria"
+                  absoluteCriteria = c.absolute_criteria != null ? [c.absolute_criteria] : null
+                  daysOfWeek       = try(c.days_of_week, null)
+                  monthsOfYear     = try(c.months_of_year, null)
+                  weeksOfMonth     = try(c.weeks_of_month, null)
+                }]
+              }],
+              [{
+                isDefault       = true
+                taggingPriority = 99
+                tagInfo = {
+                  id      = "Default_"
+                  tagName = "Default"
+                }
+              }]
+            )
+          }
+          backupParameters = {
+            objectType = "AzureBackupParams"
+            backupType = "Full"
+          }
+          dataStore = {
+            dataStoreType = "VaultStore"
+            objectType    = "DataStoreInfoBase"
+          }
+        }],
+        # Default retention rule
+        [{
+          name       = "Default"
+          objectType = "AzureRetentionRule"
+          isDefault  = true
+          lifecycles = [{
+            sourceDataStore = {
+              dataStoreType = "VaultStore"
+              objectType    = "DataStoreInfoBase"
+            }
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = each.value.default_retention_duration
+            }
+          }]
+        }],
+        # Named retention rules
+        [for rr in each.value.retention_rules : {
+          name       = rr.name
+          objectType = "AzureRetentionRule"
+          isDefault  = false
+          lifecycles = [{
+            sourceDataStore = {
+              dataStoreType = try(rr.life_cycle[0].data_store_type, "VaultStore")
+              objectType    = "DataStoreInfoBase"
+            }
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = try(rr.life_cycle[0].duration, rr.duration, each.value.default_retention_duration)
+            }
+          }]
+        }]
+      )
     }
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
