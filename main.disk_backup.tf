@@ -94,8 +94,8 @@ resource "azapi_resource" "backup_instance_disk" {
         resourceId = each.value.disk_id
       }
       datasourceParameters = {
-        objectType                = "AzureBackupParams"
-        snapshotResourceGroupName = each.value.snapshot_resource_group_name
+        objectType      = "AzureOperationalStoreParameters"
+        resourceGroupId = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${each.value.snapshot_resource_group_name}"
       }
       policyInfo = {
         policyId = azapi_resource.backup_policy_disk[each.value.backup_policy_key].id

@@ -79,7 +79,7 @@ module "backup_vault" {
   datastore_type      = "VaultStore"
   location            = azurerm_resource_group.rg.location
   name                = module.naming.recovery_services_vault.name_unique
-  redundancy          = "LocallyRedundant"
+  redundancy          = "GeoRedundant"
   resource_group_name = azurerm_resource_group.rg.name
   diagnostic_settings = {}
   enable_telemetry    = true
@@ -105,10 +105,22 @@ resource "time_sleep" "wait_policy" {
   depends_on = [azurerm_key_vault_access_policy.vault_mi]
 }
 
-# Configure CMK on the backup vault in one shot (outside the module)
-resource "azurerm_data_protection_backup_vault_customer_managed_key" "cmk" {
-  data_protection_backup_vault_id = module.backup_vault.resource_id
-  key_vault_key_id                = azurerm_key_vault_key.key.versionless_id
+# Configure CMK using azapi_update_resource to avoid azurerm provider 406 bugs
+resource "azapi_update_resource" "cmk" {
+  resource_id = module.backup_vault.resource_id
+  type        = "Microsoft.DataProtection/backupVaults@2025-07-01"
+  body = {
+    properties = {
+      securitySettings = {
+        encryptionSettings = {
+          state = "Enabled"
+          keyVaultProperties = {
+            keyUri = azurerm_key_vault_key.key.versionless_id
+          }
+        }
+      }
+    }
+  }
 
   depends_on = [time_sleep.wait_policy]
 }
