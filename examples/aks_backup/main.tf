@@ -19,6 +19,7 @@ terraform {
 
 provider "azurerm" {
   features {}
+  storage_use_azuread = true
 }
 
 provider "azapi" {}
@@ -32,7 +33,9 @@ module "naming" {
   suffix = ["aks"]
 }
 
+# ---------------------------------------------------------------------------
 # Resource groups
+# ---------------------------------------------------------------------------
 resource "azurerm_resource_group" "example" {
   location = "eastus2"
   name     = module.naming.resource_group.name_unique
@@ -43,7 +46,9 @@ resource "azurerm_resource_group" "snap" {
   name     = "${module.naming.resource_group.name_unique}-snap"
 }
 
-# AKS Cluster with System Identity
+# ---------------------------------------------------------------------------
+# AKS cluster
+# ---------------------------------------------------------------------------
 resource "azurerm_kubernetes_cluster" "example" {
   location            = azurerm_resource_group.example.location
   name                = module.naming.kubernetes_cluster.name_unique
@@ -61,7 +66,7 @@ resource "azurerm_kubernetes_cluster" "example" {
     temporary_name_for_rotation = "tempnodepool"
     type                        = "VirtualMachineScaleSets"
     vm_size                     = "Standard_D4s_v3"
-    zones                       = ["1", "3"]
+    zones                       = ["1", "2"]
 
     upgrade_settings {
       max_surge                     = "33%"
@@ -74,14 +79,17 @@ resource "azurerm_kubernetes_cluster" "example" {
   }
 }
 
-
-# Storage account required for the AKS extension
+# ---------------------------------------------------------------------------
+# Storage account — required by the AKS Data Protection extension
+# ---------------------------------------------------------------------------
 resource "azurerm_storage_account" "example" {
-  account_replication_type = "ZRS"
-  account_tier             = "Standard"
-  location                 = azurerm_resource_group.example.location
-  name                     = lower(replace("stgaks${substr(module.naming.resource_group.name_unique, -12, -1)}", "-", ""))
-  resource_group_name      = azurerm_resource_group.example.name
+  account_replication_type        = "ZRS"
+  account_tier                    = "Standard"
+  location                        = azurerm_resource_group.example.location
+  name                            = lower(replace("stgaks${substr(module.naming.resource_group.name_unique, -12, -1)}", "-", ""))
+  resource_group_name             = azurerm_resource_group.example.name
+  allow_nested_items_to_be_public = false
+  shared_access_key_enabled       = false
 }
 
 resource "azurerm_storage_container" "example" {
@@ -90,7 +98,9 @@ resource "azurerm_storage_container" "example" {
   storage_account_id    = azurerm_storage_account.example.id
 }
 
-# Install the Kubernetes Data Protection extension
+# ---------------------------------------------------------------------------
+# Kubernetes Data Protection extension
+# ---------------------------------------------------------------------------
 resource "azurerm_kubernetes_cluster_extension" "backup_extension" {
   cluster_id     = azurerm_kubernetes_cluster.example.id
   extension_type = "Microsoft.DataProtection.Kubernetes"
@@ -106,14 +116,14 @@ resource "azurerm_kubernetes_cluster_extension" "backup_extension" {
   release_train     = "stable"
 }
 
-# Add wait after extension creation
+# Allow time for the extension pods to become ready before assigning roles
 resource "time_sleep" "wait_for_extension" {
-  create_duration = "5m" # Allow 5 minutes for extension to initialize
+  create_duration = "5m"
 
   depends_on = [azurerm_kubernetes_cluster_extension.backup_extension]
 }
 
-# Grant the extension access to the storage account
+# Grant the extension MSI write access to the backup storage account
 resource "azurerm_role_assignment" "extension_storage_access" {
   principal_id         = azurerm_kubernetes_cluster_extension.backup_extension.aks_assigned_identity[0].principal_id
   scope                = azurerm_storage_account.example.id
@@ -122,7 +132,12 @@ resource "azurerm_role_assignment" "extension_storage_access" {
   depends_on = [time_sleep.wait_for_extension]
 }
 
-# Backup vault using the module
+# ---------------------------------------------------------------------------
+# Backup vault + policy (phase 1 — vault MSI must exist before RBAC below)
+# The backup instance is intentionally omitted here so that all required RBAC
+# and the trusted-access binding can be established before the instance is
+# created.  See the azapi_resource.backup_instance block further below.
+# ---------------------------------------------------------------------------
 module "backup_vault" {
   source = "../../"
 
@@ -131,21 +146,6 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
-  backup_instances = {
-    aks = {
-      type                         = "kubernetes"
-      name                         = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
-      backup_policy_key            = "aks"
-      kubernetes_cluster_id        = azurerm_kubernetes_cluster.example.id
-      snapshot_resource_group_name = azurerm_resource_group.snap.name
-      backup_datasource_parameters = {
-        excluded_namespaces              = ["kube-system", "kube-public"]
-        included_namespaces              = ["default", "app-namespace"]
-        cluster_scoped_resources_enabled = true
-        volume_snapshot_enabled          = true
-      }
-    }
-  }
   backup_policies = {
     aks = {
       type = "kubernetes"
@@ -164,21 +164,13 @@ module "backup_vault" {
           name     = "Weekly"
           priority = 25
           duration = "P84D"
-          criteria = [
-            {
-              absolute_criteria = "FirstOfWeek"
-            }
-          ]
+          criteria = [{ absolute_criteria = "FirstOfWeek" }]
         },
         {
           name     = "Monthly"
           priority = 20
           duration = "P365D"
-          criteria = [
-            {
-              absolute_criteria = "FirstOfMonth"
-            }
-          ]
+          criteria = [{ absolute_criteria = "FirstOfMonth" }]
         }
       ]
     }
@@ -191,18 +183,19 @@ module "backup_vault" {
   depends_on = [time_sleep.wait_for_extension]
 }
 
-# Create trusted access role binding between AKS and backup vault
+# ---------------------------------------------------------------------------
+# RBAC — all roles the vault MSI and AKS MSI need for backup operations
+# These must be in place before the backup instance is created.
+# ---------------------------------------------------------------------------
+
+# Grants the backup vault's managed identity operator access to the AKS cluster
 resource "azurerm_kubernetes_cluster_trusted_access_role_binding" "backup_access" {
   kubernetes_cluster_id = azurerm_kubernetes_cluster.example.id
   name                  = "backup-operator-binding"
   roles                 = ["Microsoft.DataProtection/backupVaults/backup-operator"]
   source_resource_id    = module.backup_vault.backup_vault_id
-
-  depends_on = [module.backup_vault]
 }
 
-# Required role assignments for AKS backup to function properly
-# FIXED: Removed depends_on from inside the for_each map
 resource "azurerm_role_assignment" "required_roles" {
   for_each = {
     vault_cluster_reader = {
@@ -240,19 +233,70 @@ resource "azurerm_role_assignment" "required_roles" {
   principal_id         = each.value.principal_id
   scope                = each.value.scope
   role_definition_name = each.value.role
-
-  # FIXED: Moved depends_on to the resource level instead of inside the for_each map
-  depends_on = [time_sleep.wait_for_extension, module.backup_vault]
 }
 
-# Wait for role assignments to propagate before creating backup resources
+# Allow RBAC assignments to propagate across Azure AD before creating the
+# backup instance — typically takes up to 2 minutes.
 resource "time_sleep" "wait_for_rbac" {
-  # Azure RBAC can take time to propagate
   create_duration = "2m"
 
   depends_on = [
-    azurerm_role_assignment.required_roles,
     azurerm_kubernetes_cluster_trusted_access_role_binding.backup_access,
-    azurerm_role_assignment.extension_storage_access
+    azurerm_role_assignment.extension_storage_access,
+    azurerm_role_assignment.required_roles,
   ]
+}
+
+# ---------------------------------------------------------------------------
+# Backup instance (phase 2 — created only after all RBAC is in place)
+# ---------------------------------------------------------------------------
+resource "azapi_resource" "backup_instance" {
+  location  = azurerm_resource_group.example.location
+  name      = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
+  parent_id = module.backup_vault.backup_vault_id
+  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
+  body = {
+    properties = {
+      friendlyName = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
+      objectType   = "BackupInstance"
+      policyInfo = {
+        policyId = module.backup_vault.kubernetes_backup_policy_ids["aks"]
+      }
+      dataSourceInfo = {
+        datasourceType   = "Microsoft.ContainerService/managedClusters"
+        objectType       = "DatasourceInfo"
+        resourceId       = azurerm_kubernetes_cluster.example.id
+        resourceLocation = azurerm_resource_group.example.location
+      }
+      dataSourceSetInfo = {
+        objectType = "DatasourceSetInfo"
+        resourceId = azurerm_kubernetes_cluster.example.id
+      }
+      datasourceParameters = {
+        objectType                    = "KubernetesClusterBackupDatasourceParameters"
+        clusterScopedResourcesEnabled = true
+        excludedNamespaces            = ["kube-system", "kube-public"]
+        excludedResourceTypes         = []
+        includedNamespaces            = ["default", "app-namespace"]
+        includedResourceTypes         = []
+        labelSelectors                = []
+        snapshotResourceGroupName     = azurerm_resource_group.snap.name
+        volumeSnapshotEnabled         = true
+      }
+      validationType = "ShallowValidation"
+    }
+  }
+  ignore_casing             = true
+  ignore_missing_property   = true
+  ignore_null_property      = true
+  schema_validation_enabled = false
+
+  depends_on = [time_sleep.wait_for_rbac]
+
+  lifecycle {
+    ignore_changes = [
+      body.properties.dataSourceInfo.objectType,
+      body.properties.dataSourceSetInfo.objectType,
+    ]
+  }
 }

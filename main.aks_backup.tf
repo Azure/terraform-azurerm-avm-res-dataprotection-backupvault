@@ -7,68 +7,87 @@ resource "azapi_resource" "backup_policy_kubernetes_cluster" {
   type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
   body = {
     properties = {
-      objectType = "BackupPolicy"
-      policyRules = [{
-        name       = "BackupRule"
-        objectType = "AzureBackupRule"
-        trigger = {
-          objectType = "ScheduleBasedTriggerContext"
-          schedule = {
-            repeatingTimeIntervals = each.value.backup_repeating_time_intervals
-          }
-          taggingCriteria = concat([
-            {
-              isDefault       = true
-              taggingPriority = 999
-              tagInfo = {
-                tagName = "Default"
-              }
-            }
-            ], [
-            for rr in each.value.retention_rules : {
-              isDefault       = false
-              taggingPriority = rr.priority
-              tagInfo = {
-                tagName = rr.name
-              }
-            }
-          ])
-          timezone = each.value.time_zone
-        }
-        backupParameters = {
-          objectType = "AzureBackupParams"
-          backupType = "Snapshot"
-        }
-        dataStore = {
-          dataStoreType = "OperationalStore"
-          objectType    = "DataStoreInfoBase"
-        }
-      }]
-      defaultRetentionRule = {
-        name       = "Default"
-        isDefault  = true
-        objectType = "AzureRetentionRule"
-        lifeCycle = [{
-          dataStoreType = each.value.default_retention_life_cycle != null ? each.value.default_retention_life_cycle.data_store_type : "OperationalStore"
-          duration      = each.value.default_retention_life_cycle != null ? each.value.default_retention_life_cycle.duration : "P14D"
-        }]
-      }
-      retentionRules = [for rr in each.value.retention_rules : {
-        name       = rr.name
-        priority   = rr.priority
-        objectType = "AzureRetentionRule"
-        criteria = {
-          absoluteCriteria = try(rr.criteria[0].absolute_criteria, null)
-          daysOfWeek       = try(rr.criteria[0].days_of_week, null)
-          monthsOfYear     = try(rr.criteria[0].months_of_year, null)
-          weeksOfMonth     = try(rr.criteria[0].weeks_of_month, null)
-        }
-        lifeCycle = [{
-          dataStoreType = try(rr.life_cycle[0].data_store_type, "OperationalStore")
-          duration      = try(rr.life_cycle[0].duration, rr.duration, "P30D")
-        }]
-      }]
+      objectType      = "BackupPolicy"
       datasourceTypes = ["Microsoft.ContainerService/managedClusters"]
+      policyRules = concat(
+        # Backup schedule rule must be listed first per Azure API requirement
+        [{
+          name       = "BackupRule"
+          objectType = "AzureBackupRule"
+          trigger = {
+            objectType = "ScheduleBasedTriggerContext"
+            schedule = {
+              timeZone               = each.value.time_zone
+              repeatingTimeIntervals = each.value.backup_repeating_time_intervals
+            }
+            taggingCriteria = concat(
+              [for rr in each.value.retention_rules : {
+                isDefault       = false
+                taggingPriority = rr.priority
+                tagInfo = {
+                  id      = "${rr.name}_"
+                  tagName = rr.name
+                }
+                criteria = [for c in rr.criteria : {
+                  objectType       = "ScheduleBasedBackupCriteria"
+                  absoluteCriteria = c.absolute_criteria != null ? [c.absolute_criteria] : null
+                  daysOfWeek       = try(c.days_of_week, null)
+                  monthsOfYear     = try(c.months_of_year, null)
+                  weeksOfMonth     = try(c.weeks_of_month, null)
+                }]
+              }],
+              [{
+                isDefault       = true
+                taggingPriority = 99
+                tagInfo = {
+                  id      = "Default_"
+                  tagName = "Default"
+                }
+              }]
+            )
+          }
+          backupParameters = {
+            objectType = "AzureBackupParams"
+            backupType = "Incremental"
+          }
+          dataStore = {
+            dataStoreType = "OperationalStore"
+            objectType    = "DataStoreInfoBase"
+          }
+        }],
+        # Default retention rule
+        [{
+          name       = "Default"
+          objectType = "AzureRetentionRule"
+          isDefault  = true
+          lifecycles = [{
+            sourceDataStore = {
+              dataStoreType = each.value.default_retention_life_cycle != null ? each.value.default_retention_life_cycle.data_store_type : "OperationalStore"
+              objectType    = "DataStoreInfoBase"
+            }
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = each.value.default_retention_life_cycle != null ? each.value.default_retention_life_cycle.duration : "P14D"
+            }
+          }]
+        }],
+        # Named retention rules
+        [for rr in each.value.retention_rules : {
+          name       = rr.name
+          objectType = "AzureRetentionRule"
+          isDefault  = false
+          lifecycles = [{
+            sourceDataStore = {
+              dataStoreType = try(rr.life_cycle[0].data_store_type, "OperationalStore")
+              objectType    = "DataStoreInfoBase"
+            }
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = try(rr.life_cycle[0].duration, rr.duration, "P30D")
+            }
+          }]
+        }]
+      )
     }
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
@@ -95,7 +114,9 @@ resource "azapi_resource" "backup_instance_kubernetes_cluster" {
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
   body = {
     properties = {
-      policyId     = azapi_resource.backup_policy_kubernetes_cluster[each.value.backup_policy_key].id
+      policyInfo = {
+        policyId = azapi_resource.backup_policy_kubernetes_cluster[each.value.backup_policy_key].id
+      }
       friendlyName = each.value.name
       objectType   = "BackupInstance"
       dataSourceInfo = {
