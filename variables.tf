@@ -49,21 +49,6 @@ variable "resource_group_name" {
   description = "The resource group where the resources will be deployed."
 }
 
-# Direct AKS/Kubernetes backup configuration variables
-variable "backup_datasource_parameters" {
-  type = object({
-    excluded_namespaces              = optional(list(string), [])
-    included_namespaces              = optional(list(string), [])
-    excluded_resource_types          = optional(list(string), [])
-    included_resource_types          = optional(list(string), [])
-    label_selectors                  = optional(list(string), [])
-    cluster_scoped_resources_enabled = optional(bool, false)
-    volume_snapshot_enabled          = optional(bool, false)
-  })
-  default     = null
-  description = "Configuration for Kubernetes backup datasource parameters."
-}
-
 # Backup Instances Configuration
 variable "backup_instances" {
   type = map(object({
@@ -150,6 +135,13 @@ DESCRIPTION
     ])
     error_message = "All backup instance names must be between 5 and 50 characters long."
   }
+  validation {
+    condition = alltrue([
+      for instance in var.backup_instances :
+      instance.type != "kubernetes" ? true : (instance.kubernetes_cluster_id != null && instance.snapshot_resource_group_name != null)
+    ])
+    error_message = "Kubernetes backup instances must provide kubernetes_cluster_id and snapshot_resource_group_name."
+  }
 }
 
 # Backup Policies Configuration
@@ -222,12 +214,32 @@ DESCRIPTION
     ])
     error_message = "All backup policies must have a valid type: disk, blob, adls, kubernetes, postgresql, or postgresql_flexible."
   }
-}
-
-variable "backup_repeating_time_intervals" {
-  type        = list(string)
-  default     = []
-  description = "List of repeating time intervals for scheduling backups."
+  validation {
+    condition = alltrue([
+      for policy in var.backup_policies :
+      policy.type != "kubernetes" ? true : length(policy.backup_repeating_time_intervals) > 0
+    ])
+    error_message = "Kubernetes backup policies must set backup_repeating_time_intervals (at least one interval)."
+  }
+  validation {
+    condition = alltrue([
+      for policy in var.backup_policies :
+      policy.type != "kubernetes" ? true : alltrue([for rr in policy.retention_rules : length(rr.criteria) == 1])
+    ])
+    error_message = "Kubernetes backup policies require each retention_rules[*].criteria to contain exactly one entry."
+  }
+  validation {
+    condition = alltrue([
+      for policy in var.backup_policies :
+      policy.type != "kubernetes" ? true : alltrue([
+        for rr in policy.retention_rules : (
+          try(length(rr.criteria[0].days_of_month), 0) == 0 &&
+          try(length(rr.criteria[0].scheduled_backup_times), 0) == 0
+        )
+      ])
+    ])
+    error_message = "Kubernetes retention_rules.criteria does not support days_of_month or scheduled_backup_times in this module."
+  }
 }
 
 variable "cross_region_restore_enabled" {
@@ -261,15 +273,6 @@ Customer-managed key configuration for encrypting the Backup Vault, following th
 - key_version: (Optional) Specific key version. If omitted, the service uses the latest.
 - user_assigned_identity: (Optional) For future compatibility where UA-MI is supported.
 DESCRIPTION
-}
-
-variable "default_retention_life_cycle" {
-  type = object({
-    data_store_type = optional(string, "OperationalStore")
-    duration        = optional(string, "P14D")
-  })
-  default     = null
-  description = "Default retention life cycle configuration for AKS backups."
 }
 
 variable "diagnostic_settings" {
@@ -338,39 +341,6 @@ variable "immutability" {
     condition     = contains(["Disabled", "Locked", "Unlocked"], var.immutability)
     error_message = "immutability must be one of: Disabled, Locked, Unlocked."
   }
-}
-
-variable "kubernetes_backup_instance_name" {
-  type        = string
-  default     = null
-  description = "Name for the AKS backup instance when using direct configuration."
-}
-
-variable "kubernetes_backup_policy_name" {
-  type        = string
-  default     = null
-  description = "Name for the AKS backup policy when using direct configuration."
-}
-
-variable "kubernetes_cluster_id" {
-  type        = string
-  default     = null
-  description = "Resource ID of the AKS cluster to back up when using direct configuration."
-}
-
-variable "kubernetes_retention_rules" {
-  type = list(object({
-    name              = string
-    priority          = number
-    absolute_criteria = optional(string)
-    days_of_week      = optional(list(string))
-    months_of_year    = optional(list(string))
-    weeks_of_month    = optional(list(string))
-    data_store_type   = optional(string, "OperationalStore")
-    duration          = string
-  }))
-  default     = []
-  description = "List of retention rules for AKS backups when using direct configuration."
 }
 
 variable "lock" {
@@ -450,12 +420,6 @@ variable "role_assignments" {
   nullable    = false
 }
 
-variable "snapshot_resource_group_name" {
-  type        = string
-  default     = null
-  description = "Resource group name for AKS volume snapshots when using direct configuration."
-}
-
 variable "soft_delete" {
   type        = string
   default     = "Off"
@@ -475,12 +439,6 @@ variable "tags" {
   type        = map(string)
   default     = null
   description = "(Optional) Tags of the resource."
-}
-
-variable "time_zone" {
-  type        = string
-  default     = "UTC"
-  description = "Time zone for backup scheduling when using direct configuration."
 }
 
 # Timeouts Configuration
