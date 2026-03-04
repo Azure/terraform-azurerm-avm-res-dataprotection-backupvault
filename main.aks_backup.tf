@@ -1,74 +1,93 @@
 # AKS/Kubernetes Backup Policies
 resource "azapi_resource" "backup_policy_kubernetes_cluster" {
-  count = var.kubernetes_backup_policy_name != null ? 1 : 0
+  for_each = local.kubernetes_policies
 
-  name      = var.kubernetes_backup_policy_name
+  name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
   body = {
     properties = {
-      objectType = "BackupPolicy"
-      policyRules = [{
-        name       = "BackupRule"
-        objectType = "AzureBackupRule"
-        trigger = {
-          objectType = "ScheduleBasedTriggerContext"
-          schedule = {
-            repeatingTimeIntervals = var.backup_repeating_time_intervals
-          }
-          taggingCriteria = concat([
-            {
-              isDefault       = true
-              taggingPriority = 999
-              tagInfo = {
-                tagName = "Default"
-              }
-            }
-            ], [
-            for rr in var.kubernetes_retention_rules : {
-              isDefault       = false
-              taggingPriority = rr.priority
-              tagInfo = {
-                tagName = rr.name
-              }
-            }
-          ])
-          timezone = var.time_zone
-        }
-        backupParameters = {
-          objectType = "AzureBackupParams"
-          backupType = "Snapshot"
-        }
-        dataStore = {
-          dataStoreType = "OperationalStore"
-          objectType    = "DataStoreInfoBase"
-        }
-      }]
-      defaultRetentionRule = {
-        name       = "Default"
-        isDefault  = true
-        objectType = "AzureRetentionRule"
-        lifeCycle = [{
-          dataStoreType = var.default_retention_life_cycle != null ? var.default_retention_life_cycle.data_store_type : "OperationalStore"
-          duration      = var.default_retention_life_cycle != null ? var.default_retention_life_cycle.duration : "P14D"
-        }]
-      }
-      retentionRules = [for rr in var.kubernetes_retention_rules : {
-        name       = rr.name
-        priority   = rr.priority
-        objectType = "AzureRetentionRule"
-        criteria = {
-          absoluteCriteria = try(rr.absolute_criteria, null)
-          daysOfWeek       = try(rr.days_of_week, null)
-          monthsOfYear     = try(rr.months_of_year, null)
-          weeksOfMonth     = try(rr.weeks_of_month, null)
-        }
-        lifeCycle = [{
-          dataStoreType = try(rr.data_store_type, "OperationalStore")
-          duration      = rr.duration
-        }]
-      }]
+      objectType      = "BackupPolicy"
       datasourceTypes = ["Microsoft.ContainerService/managedClusters"]
+      policyRules = concat(
+        # Backup schedule rule must be listed first per Azure API requirement
+        [{
+          name       = "BackupRule"
+          objectType = "AzureBackupRule"
+          trigger = {
+            objectType = "ScheduleBasedTriggerContext"
+            schedule = {
+              timeZone               = each.value.time_zone
+              repeatingTimeIntervals = each.value.backup_repeating_time_intervals
+            }
+            taggingCriteria = concat(
+              [for rr in each.value.retention_rules : {
+                isDefault       = false
+                taggingPriority = rr.priority
+                tagInfo = {
+                  id      = "${rr.name}_"
+                  tagName = rr.name
+                }
+                criteria = [for c in rr.criteria : {
+                  objectType       = "ScheduleBasedBackupCriteria"
+                  absoluteCriteria = c.absolute_criteria != null ? [c.absolute_criteria] : null
+                  daysOfWeek       = try(c.days_of_week, null)
+                  monthsOfYear     = try(c.months_of_year, null)
+                  weeksOfMonth     = try(c.weeks_of_month, null)
+                }]
+              }],
+              [{
+                isDefault       = true
+                taggingPriority = 99
+                tagInfo = {
+                  id      = "Default_"
+                  tagName = "Default"
+                }
+              }]
+            )
+          }
+          backupParameters = {
+            objectType = "AzureBackupParams"
+            backupType = "Incremental"
+          }
+          dataStore = {
+            dataStoreType = "OperationalStore"
+            objectType    = "DataStoreInfoBase"
+          }
+        }],
+        # Default retention rule
+        [{
+          name       = "Default"
+          objectType = "AzureRetentionRule"
+          isDefault  = true
+          lifecycles = [{
+            sourceDataStore = {
+              dataStoreType = each.value.default_retention_life_cycle != null ? each.value.default_retention_life_cycle.data_store_type : "OperationalStore"
+              objectType    = "DataStoreInfoBase"
+            }
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = each.value.default_retention_life_cycle != null ? each.value.default_retention_life_cycle.duration : "P14D"
+            }
+          }]
+        }],
+        # Named retention rules
+        [for rr in each.value.retention_rules : {
+          name       = rr.name
+          objectType = "AzureRetentionRule"
+          isDefault  = false
+          lifecycles = [{
+            sourceDataStore = {
+              dataStoreType = try(rr.life_cycle[0].data_store_type, "OperationalStore")
+              objectType    = "DataStoreInfoBase"
+            }
+            deleteAfter = {
+              objectType = "AbsoluteDeleteOption"
+              duration   = try(rr.life_cycle[0].duration, rr.duration, "P30D")
+            }
+          }]
+        }]
+      )
     }
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
@@ -87,38 +106,40 @@ resource "azapi_resource" "backup_policy_kubernetes_cluster" {
 }
 
 resource "azapi_resource" "backup_instance_kubernetes_cluster" {
-  count = var.kubernetes_backup_instance_name != null ? 1 : 0
+  for_each = local.kubernetes_instances
 
   location  = var.location
-  name      = var.kubernetes_backup_instance_name
+  name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
   body = {
     properties = {
-      policyId     = length(azapi_resource.backup_policy_kubernetes_cluster) > 0 ? azapi_resource.backup_policy_kubernetes_cluster[0].id : null
-      friendlyName = var.kubernetes_backup_instance_name
+      policyInfo = {
+        policyId = azapi_resource.backup_policy_kubernetes_cluster[each.value.backup_policy_key].id
+      }
+      friendlyName = each.value.name
       objectType   = "BackupInstance"
       dataSourceInfo = {
         objectType       = "DatasourceInfo"
-        resourceId       = var.kubernetes_cluster_id
+        resourceId       = each.value.kubernetes_cluster_id
         datasourceType   = "Microsoft.ContainerService/managedClusters"
         resourceLocation = var.location
       }
       datasourceAuthCredentials = null
       dataSourceSetInfo = {
         objectType = "DatasourceSetInfo"
-        resourceId = var.kubernetes_cluster_id
+        resourceId = each.value.kubernetes_cluster_id
       }
       datasourceParameters = {
         objectType                    = "KubernetesClusterBackupDatasourceParameters"
-        clusterScopedResourcesEnabled = try(var.backup_datasource_parameters.cluster_scoped_resources_enabled, false)
-        excludedNamespaces            = try(var.backup_datasource_parameters.excluded_namespaces, [])
-        excludedResourceTypes         = try(var.backup_datasource_parameters.excluded_resource_types, [])
-        includedNamespaces            = try(var.backup_datasource_parameters.included_namespaces, [])
-        includedResourceTypes         = try(var.backup_datasource_parameters.included_resource_types, [])
-        labelSelectors                = try(var.backup_datasource_parameters.label_selectors, [])
-        volumeSnapshotEnabled         = try(var.backup_datasource_parameters.volume_snapshot_enabled, false)
-        snapshotResourceGroupName     = var.snapshot_resource_group_name
+        clusterScopedResourcesEnabled = try(each.value.backup_datasource_parameters.cluster_scoped_resources_enabled, false)
+        excludedNamespaces            = try(each.value.backup_datasource_parameters.excluded_namespaces, [])
+        excludedResourceTypes         = try(each.value.backup_datasource_parameters.excluded_resource_types, [])
+        includedNamespaces            = try(each.value.backup_datasource_parameters.included_namespaces, [])
+        includedResourceTypes         = try(each.value.backup_datasource_parameters.included_resource_types, [])
+        labelSelectors                = try(each.value.backup_datasource_parameters.label_selectors, [])
+        volumeSnapshotEnabled         = try(each.value.backup_datasource_parameters.volume_snapshot_enabled, false)
+        snapshotResourceGroupName     = each.value.snapshot_resource_group_name
       }
       validationType = "ShallowValidation"
     }
@@ -146,8 +167,12 @@ resource "azapi_resource" "backup_instance_kubernetes_cluster" {
     ]
 
     precondition {
-      condition     = var.kubernetes_cluster_id != null
-      error_message = "kubernetes_cluster_id must be provided for direct AKS backup instance."
+      condition     = each.value.kubernetes_cluster_id != null
+      error_message = "kubernetes_cluster_id must be provided for kubernetes backup instance '${each.key}'."
+    }
+    precondition {
+      condition     = each.value.snapshot_resource_group_name != null
+      error_message = "snapshot_resource_group_name must be provided for kubernetes backup instance '${each.key}'."
     }
   }
 }
