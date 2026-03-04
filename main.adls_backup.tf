@@ -139,8 +139,10 @@ resource "azapi_resource" "backup_instance_adls_storage" {
         resourceLocation = var.location
       }
       dataSourceSetInfo = {
-        objectType = "DatasourceSetInfo"
-        resourceId = each.value.storage_account_id
+        objectType       = "DatasourceSetInfo"
+        resourceId       = each.value.storage_account_id
+        datasourceType   = "Microsoft.Storage/storageAccounts/adlsBlobServices"
+        resourceLocation = var.location
       }
       policyInfo = {
         policyId = azapi_resource.backup_policy_adls_storage[each.value.backup_policy_key].id

@@ -15,6 +15,7 @@ terraform {
 
 provider "azurerm" {
   features {}
+  storage_use_azuread = true
 }
 
 # Randomly select an Azure region for the resource group

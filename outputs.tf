@@ -1,11 +1,22 @@
 # Identity Outputs
 
 # Backup Instance Outputs
+output "adls_backup_instance_ids" {
+  description = "Map of ADLS backup instance IDs by instance key."
+  value       = { for k, v in azapi_resource.backup_instance_adls_storage : k => v.id }
+}
+
+output "adls_backup_policy_ids" {
+  description = "Map of ADLS backup policy IDs by policy key."
+  value       = { for k, v in azapi_resource.backup_policy_adls_storage : k => v.id }
+}
+
 output "backup_instance_ids" {
   description = "Map of backup instance IDs by instance key."
   value = merge(
     { for k, v in azapi_resource.backup_instance_disk : k => v.id },
     { for k, v in azapi_resource.backup_instance_blob_storage : k => v.id },
+    { for k, v in azapi_resource.backup_instance_adls_storage : k => v.id },
     { for k, v in azapi_resource.backup_instance_kubernetes_cluster : k => v.id },
     { for k, v in azapi_resource.backup_instance_postgresql : k => v.id },
     { for k, v in azapi_resource.backup_instance_postgresql_flexible_server : k => v.id }
@@ -17,6 +28,7 @@ output "backup_policy_ids" {
   value = merge(
     { for k, v in azapi_resource.backup_policy_disk : k => v.id },
     { for k, v in azapi_resource.backup_policy_blob_storage : k => v.id },
+    { for k, v in azapi_resource.backup_policy_adls_storage : k => v.id },
     { for k, v in azapi_resource.backup_policy_kubernetes_cluster : k => v.id },
     { for k, v in azapi_resource.backup_policy_postgresql : k => v.id },
     { for k, v in azapi_resource.backup_policy_postgresql_flexible_server : k => v.id }
