@@ -15,7 +15,9 @@ resource "azapi_update_resource" "cmk" {
           kekIdentity = var.customer_managed_key.user_assigned_identity != null ? {
             identityType = "UserAssigned"
             identityId   = var.customer_managed_key.user_assigned_identity.resource_id
-          } : null
+            } : {
+            identityType = "SystemAssigned"
+          }
         }
       }
     }

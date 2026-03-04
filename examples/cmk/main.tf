@@ -117,6 +117,9 @@ resource "azapi_update_resource" "cmk" {
           keyVaultProperties = {
             keyUri = azurerm_key_vault_key.key.versionless_id
           }
+          kekIdentity = {
+            identityType = "SystemAssigned"
+          }
         }
       }
     }
