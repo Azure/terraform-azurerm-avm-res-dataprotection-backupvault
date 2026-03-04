@@ -99,6 +99,12 @@ resource "azapi_resource" "role_assignments" {
   read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
   update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+
+  lifecycle {
+    ignore_changes = [
+      body.properties.roleDefinitionId,
+    ]
+  }
 }
 
 resource "azapi_resource" "diagnostic_settings" {

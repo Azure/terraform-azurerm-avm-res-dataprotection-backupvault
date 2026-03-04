@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.5.0, < 4.0"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = ">= 0.9.0, < 1.0"
+    }
   }
 }
 
@@ -101,7 +105,7 @@ module "backup_vault" {
     postgresqlflex = {
       type                            = "postgresql_flexible"
       name                            = "${module.naming.postgresql_server.name_unique}-backup-policy"
-      backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+      backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/P1W"]
       default_retention_duration      = "P4M"
       retention_rules = [
         {
@@ -134,4 +138,15 @@ module "backup_vault" {
       description                = "Allow backup vault identity to read resource group information"
     }
   }
+}
+
+# Wait for Azure to finish configuring backup protection before allowing destroy.
+# Azure Data Protection backup instances transition asynchronously through
+# ConfiguringProtection status after creation. Attempting to delete during this
+# state returns a 400 error. This sleep is destroyed first (due to depends_on),
+# giving Azure time to complete the transition.
+resource "time_sleep" "wait_for_backup_protection" {
+  destroy_duration = "120s"
+
+  depends_on = [module.backup_vault]
 }
