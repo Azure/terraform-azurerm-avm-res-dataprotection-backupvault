@@ -108,7 +108,7 @@ module "backup_vault" {
     postgresqlflex = {
       type                            = "postgresql_flexible"
       name                            = "${module.naming.postgresql_server.name_unique}-backup-policy"
-      backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/PT4H"]
+      backup_repeating_time_intervals = ["R/2024-09-17T06:33:16+00:00/P1W"]
       default_retention_duration      = "P4M"
       retention_rules = [
         {
