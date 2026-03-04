@@ -37,9 +37,9 @@ module "naming" {
   suffix = ["adls"]
 }
 
-# Create a Resource Group in the randomly selected region
+# Create a Resource Group
 resource "azurerm_resource_group" "example" {
-  location = module.regions.regions[random_integer.region_index.result].name
+  location = "centralus"
   name     = module.naming.resource_group.name_unique
 }
 
