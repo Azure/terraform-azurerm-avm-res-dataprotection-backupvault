@@ -52,7 +52,7 @@ variable "resource_group_name" {
 # Backup Instances Configuration
 variable "backup_instances" {
   type = map(object({
-    type              = string # "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+    type              = string # "disk", "blob", "adls", "kubernetes", "postgresql", "postgresql_flexible"
     name              = string
     backup_policy_key = string # References key from backup_policies map
 
@@ -90,7 +90,7 @@ variable "backup_instances" {
   description = <<DESCRIPTION
 Map of backup instances to create. Each instance references a backup policy via backup_policy_key.
 
-Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+Supported types: "disk", "blob", "adls", "kubernetes", "postgresql", "postgresql_flexible"
 
 Common settings:
 - name: Display name for the backup instance
@@ -99,6 +99,7 @@ Common settings:
 Type-specific settings:
 - Disk: disk_id, snapshot_resource_group_name
 - Blob: storage_account_id, storage_account_container_names
+- ADLS (Azure Data Lake Storage Gen2): storage_account_id, storage_account_container_names
 - AKS: kubernetes_cluster_id, backup_datasource_parameters
 - PostgreSQL: postgresql_server_id, postgresql_database_id, postgresql_key_vault_secret_id
 - PostgreSQL Flexible: postgresql_flexible_server_id, postgresql_flexible_database_id, postgresql_flexible_key_vault_secret_id
@@ -107,9 +108,9 @@ DESCRIPTION
   validation {
     condition = alltrue([
       for instance in var.backup_instances :
-      contains(["disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"], instance.type)
+      contains(["disk", "blob", "adls", "kubernetes", "postgresql", "postgresql_flexible"], instance.type)
     ])
-    error_message = "All backup instances must have a valid type: disk, blob, kubernetes, postgresql, or postgresql_flexible."
+    error_message = "All backup instances must have a valid type: disk, blob, adls, kubernetes, postgresql, or postgresql_flexible."
   }
   validation {
     condition = alltrue([
@@ -146,7 +147,7 @@ DESCRIPTION
 # Backup Policies Configuration
 variable "backup_policies" {
   type = map(object({
-    type = string # "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+    type = string # "disk", "blob", "adls", "kubernetes", "postgresql", "postgresql_flexible"
     name = string
 
     # Common policy settings
@@ -192,7 +193,7 @@ variable "backup_policies" {
 Map of backup policies to create. Each policy can be referenced by backup instances.
 Key is used as reference identifier for backup instances.
 
-Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+Supported types: "disk", "blob", "adls", "kubernetes", "postgresql", "postgresql_flexible"
 
 Common settings:
 - backup_repeating_time_intervals: List of ISO8601 backup schedule intervals
@@ -202,15 +203,16 @@ Common settings:
 
 Type-specific settings:
 - Blob: operational_default_retention_duration, vault_default_retention_duration
+- ADLS (Azure Data Lake Storage Gen2): operational_default_retention_duration, vault_default_retention_duration
 - AKS: default_retention_life_cycle with data_store_type and duration
 DESCRIPTION
 
   validation {
     condition = alltrue([
       for policy in var.backup_policies :
-      contains(["disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"], policy.type)
+      contains(["disk", "blob", "adls", "kubernetes", "postgresql", "postgresql_flexible"], policy.type)
     ])
-    error_message = "All backup policies must have a valid type: disk, blob, kubernetes, postgresql, or postgresql_flexible."
+    error_message = "All backup policies must have a valid type: disk, blob, adls, kubernetes, postgresql, or postgresql_flexible."
   }
   validation {
     condition = alltrue([

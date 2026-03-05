@@ -58,11 +58,13 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azapi_resource.backup_instance_adls_storage](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.backup_instance_blob_storage](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.backup_instance_disk](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.backup_instance_kubernetes_cluster](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.backup_instance_postgresql](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.backup_instance_postgresql_flexible_server](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
+- [azapi_resource.backup_policy_adls_storage](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.backup_policy_blob_storage](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.backup_policy_disk](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.backup_policy_kubernetes_cluster](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
@@ -128,7 +130,7 @@ The following input variables are optional (have default values):
 
 Description: Map of backup instances to create. Each instance references a backup policy via backup\_policy\_key.
 
-Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql\_flexible"
+Supported types: "disk", "blob", "adls", "kubernetes", "postgresql", "postgresql\_flexible"
 
 Common settings:
 - name: Display name for the backup instance
@@ -137,6 +139,7 @@ Common settings:
 Type-specific settings:
 - Disk: disk\_id, snapshot\_resource\_group\_name
 - Blob: storage\_account\_id, storage\_account\_container\_names
+- ADLS (Azure Data Lake Storage Gen2): storage\_account\_id, storage\_account\_container\_names
 - AKS: kubernetes\_cluster\_id, backup\_datasource\_parameters
 - PostgreSQL: postgresql\_server\_id, postgresql\_database\_id, postgresql\_key\_vault\_secret\_id
 - PostgreSQL Flexible: postgresql\_flexible\_server\_id, postgresql\_flexible\_database\_id, postgresql\_flexible\_key\_vault\_secret\_id
@@ -145,7 +148,7 @@ Type:
 
 ```hcl
 map(object({
-    type              = string # "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+    type              = string # "disk", "blob", "adls", "kubernetes", "postgresql", "postgresql_flexible"
     name              = string
     backup_policy_key = string # References key from backup_policies map
 
@@ -188,7 +191,7 @@ Default: `{}`
 Description: Map of backup policies to create. Each policy can be referenced by backup instances.  
 Key is used as reference identifier for backup instances.
 
-Supported types: "disk", "blob", "kubernetes", "postgresql", "postgresql\_flexible"
+Supported types: "disk", "blob", "adls", "kubernetes", "postgresql", "postgresql\_flexible"
 
 Common settings:
 - backup\_repeating\_time\_intervals: List of ISO8601 backup schedule intervals
@@ -198,13 +201,14 @@ Common settings:
 
 Type-specific settings:
 - Blob: operational\_default\_retention\_duration, vault\_default\_retention\_duration
+- ADLS (Azure Data Lake Storage Gen2): operational\_default\_retention\_duration, vault\_default\_retention\_duration
 - AKS: default\_retention\_life\_cycle with data\_store\_type and duration
 
 Type:
 
 ```hcl
 map(object({
-    type = string # "disk", "blob", "kubernetes", "postgresql", "postgresql_flexible"
+    type = string # "disk", "blob", "adls", "kubernetes", "postgresql", "postgresql_flexible"
     name = string
 
     # Common policy settings
@@ -494,6 +498,14 @@ Default: `"180s"`
 ## Outputs
 
 The following outputs are exported:
+
+### <a name="output_adls_backup_instance_ids"></a> [adls\_backup\_instance\_ids](#output\_adls\_backup\_instance\_ids)
+
+Description: Map of ADLS backup instance IDs by instance key.
+
+### <a name="output_adls_backup_policy_ids"></a> [adls\_backup\_policy\_ids](#output\_adls\_backup\_policy\_ids)
+
+Description: Map of ADLS backup policy IDs by policy key.
 
 ### <a name="output_backup_instance_ids"></a> [backup\_instance\_ids](#output\_backup\_instance\_ids)
 
