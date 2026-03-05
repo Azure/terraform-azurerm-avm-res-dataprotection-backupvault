@@ -136,7 +136,7 @@ module "backup_vault" {
   managed_identities = {
     system_assigned = true
   }
-  soft_delete = "Off"
+  soft_delete = "AlwaysOn"
 
   depends_on = [time_sleep.wait_for_lock_release]
 }

@@ -11,13 +11,27 @@ resource "azapi_resource" "backup_vault" {
   location  = var.location
   name      = var.name
   parent_id = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
-  type      = "Microsoft.DataProtection/backupVaults@2025-07-01"
+  type      = "Microsoft.DataProtection/backupVaults@2025-09-01"
   body = {
     properties = {
       storageSettings = [{
         datastoreType = var.datastore_type
         type          = var.redundancy
       }]
+      featureSettings = {
+        crossRegionRestoreSettings = var.redundancy == "GeoRedundant" ? {
+          state = var.cross_region_restore_enabled ? "Enabled" : "Disabled"
+        } : null
+        crossSubscriptionRestoreSettings = var.cross_subscription_restore_state != null ? {
+          state = var.cross_subscription_restore_state
+        } : null
+      }
+      monitoringSettings = var.alerts_for_all_job_failures != null ? {
+        azureMonitorAlertSettings = {
+          alertsForAllJobFailures = var.alerts_for_all_job_failures
+        }
+      } : null
+      replicatedRegions = length(var.replicated_regions) > 0 ? var.replicated_regions : null
       securitySettings = {
         softDeleteSettings = {
           state                   = var.soft_delete
@@ -26,9 +40,6 @@ resource "azapi_resource" "backup_vault" {
         immutabilitySettings = {
           state = var.immutability
         }
-        crossRegionRestoreSettings = var.redundancy == "GeoRedundant" ? {
-          state = var.cross_region_restore_enabled ? "Enabled" : "Disabled"
-        } : null
       }
     }
   }

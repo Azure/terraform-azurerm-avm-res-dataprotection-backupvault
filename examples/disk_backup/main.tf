@@ -144,7 +144,7 @@ module "backup_vault" {
   managed_identities = {
     system_assigned = true
   }
-  soft_delete = "Off"
+  soft_delete = "AlwaysOn"
   tags = {
     Environment = "Demo"
     Service     = "Data Protection"

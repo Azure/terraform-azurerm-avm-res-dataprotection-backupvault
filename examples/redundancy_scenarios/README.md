@@ -60,7 +60,7 @@ module "backup_vault_geo_redundant_with_cross_restore" {
   cross_region_restore_enabled = true # Only works with GeoRedundant
   enable_telemetry             = true
   retention_duration_in_days   = 30
-  soft_delete                  = "On"
+  soft_delete                  = "AlwaysOn"
 }
 
 # Geo-redundant without cross-region restore
@@ -75,7 +75,7 @@ module "backup_vault_geo_redundant_no_cross_restore" {
   cross_region_restore_enabled = false
   enable_telemetry             = true
   retention_duration_in_days   = 30
-  soft_delete                  = "On"
+  soft_delete                  = "AlwaysOn"
 }
 
 # Locally redundant
@@ -89,7 +89,7 @@ module "backup_vault_locally_redundant" {
   resource_group_name        = azurerm_resource_group.example.name
   enable_telemetry           = true
   retention_duration_in_days = 45
-  soft_delete                = "On"
+  soft_delete                = "AlwaysOn"
 }
 
 # Zone redundant (if available in the region)
@@ -103,7 +103,7 @@ module "backup_vault_zone_redundant" {
   resource_group_name        = azurerm_resource_group.example.name
   enable_telemetry           = true
   retention_duration_in_days = 60
-  soft_delete                = "On"
+  soft_delete                = "AlwaysOn"
 }
 
 # Define regions for redundancy options

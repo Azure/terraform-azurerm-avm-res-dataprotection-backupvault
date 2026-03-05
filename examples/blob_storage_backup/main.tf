@@ -15,6 +15,7 @@ terraform {
 
 provider "azurerm" {
   features {}
+  storage_use_azuread = true
 }
 
 # Randomly select an Azure region for the resource group
@@ -50,6 +51,7 @@ resource "azurerm_storage_account" "example" {
   name                            = module.naming.storage_account.name_unique
   resource_group_name             = azurerm_resource_group.example.name
   allow_nested_items_to_be_public = false
+  shared_access_key_enabled       = false
 }
 
 # Create a Storage Container
@@ -127,7 +129,7 @@ module "backup_vault" {
   managed_identities = {
     system_assigned = true
   }
-  soft_delete = "Off"
+  soft_delete = "AlwaysOn"
 }
 
 # Create role assignment outside the module to avoid circular dependencies

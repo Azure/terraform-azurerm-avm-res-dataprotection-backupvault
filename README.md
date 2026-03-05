@@ -126,6 +126,15 @@ Type: `string`
 
 The following input variables are optional (have default values):
 
+### <a name="input_alerts_for_all_job_failures"></a> [alerts\_for\_all\_job\_failures](#input\_alerts\_for\_all\_job\_failures)
+
+Description: Azure Monitor alert setting for all job failures. Valid options: "Enabled", "Disabled". Defaults to null (not set).  
+When set, configures monitoringSettings.azureMonitorAlertSettings.alertsForAllJobFailures on the vault.
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_backup_instances"></a> [backup\_instances](#input\_backup\_instances)
 
 Description: Map of backup instances to create. Each instance references a backup policy via backup\_policy\_key.
@@ -261,6 +270,15 @@ Type: `bool`
 
 Default: `false`
 
+### <a name="input_cross_subscription_restore_state"></a> [cross\_subscription\_restore\_state](#input\_cross\_subscription\_restore\_state)
+
+Description: Cross-subscription restore state for the Backup Vault.  
+Valid options: "Enabled", "Disabled", "PermanentlyDisabled". Defaults to null (not set).
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_customer_managed_key"></a> [customer\_managed\_key](#input\_customer\_managed\_key)
 
 Description: Customer-managed key configuration for encrypting the Backup Vault, following the AVM interface.
@@ -372,6 +390,14 @@ object({
 
 Default: `{}`
 
+### <a name="input_replicated_regions"></a> [replicated\_regions](#input\_replicated\_regions)
+
+Description: List of replicated regions for the Backup Vault. Only applicable for GeoRedundant vaults.
+
+Type: `list(string)`
+
+Default: `[]`
+
 ### <a name="input_resource_guard_enabled"></a> [resource\_guard\_enabled](#input\_resource\_guard\_enabled)
 
 Description: Controls whether an Azure Data Protection Resource Guard is deployed to protect the backup vault from accidental or malicious operations.
@@ -430,12 +456,12 @@ Default: `{}`
 
 ### <a name="input_soft_delete"></a> [soft\_delete](#input\_soft\_delete)
 
-Description: The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to On.  
-Once set to AlwaysOn, the setting cannot be changed.
+Description: The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to AlwaysOn.  
+Note: API version 2025-09-01 requires AlwaysOn soft delete. Once set to AlwaysOn, the setting cannot be changed.
 
 Type: `string`
 
-Default: `"Off"`
+Default: `"AlwaysOn"`
 
 ### <a name="input_tags"></a> [tags](#input\_tags)
 

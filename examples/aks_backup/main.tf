@@ -254,7 +254,7 @@ resource "azapi_resource" "backup_instance" {
   location  = azurerm_resource_group.example.location
   name      = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
   parent_id = module.backup_vault.backup_vault_id
-  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
+  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
   body = {
     properties = {
       friendlyName = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
