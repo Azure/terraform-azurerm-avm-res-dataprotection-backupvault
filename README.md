@@ -12,6 +12,13 @@ To use this module in your Terraform configuration, you'll need to provide value
 - Supports AVM telemetry and tagging.
 - Flexible configuration for private DNS zone group management.
 
+## Deprecated: PostgreSQL Single Server Backup
+
+Azure Database for PostgreSQL Single Server was [retired on 2025-03-28](https://techcommunity.microsoft.com/blog/adforpostgresql/retiring-azure-database-for-postgresql-single-server-in-2025/3783783). The `postgresql` backup type in this module targets the retired Single Server service and can no longer be used for new deployments.
+
+- **For new PostgreSQL backups**, use the `postgresql_flexible` backup type which targets PostgreSQL Flexible Server. See the `postgres_flexible_backup` example.
+- **For legacy Single Server backup support**, use [v1.2.0](https://github.com/Azure/terraform-azurerm-avm-res-dataprotection-backupvault/releases/tag/v1.2.0) of this module.
+
 ## Example Usage
 
 Here is an example of how you can use this module in your Terraform configuration:
