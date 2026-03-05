@@ -67,13 +67,20 @@ resource "azurerm_storage_account" "example" {
 }
 
 # Create a Storage Container (filesystem) in ADLS Gen2
-# NOTE: Azure Data Protection automatically applies a scope lock on the storage account
-# that prevents deletion of storage resources. This lock persists even after the backup
-# vault is destroyed. Manual cleanup may be required in the Azure portal.
 resource "azurerm_storage_container" "example" {
   name                  = "example-filesystem"
   container_access_type = "private"
   storage_account_id    = azurerm_storage_account.example.id
+
+  # Azure Data Protection places a CanNotDelete scope lock on the storage account
+  # when protection is configured. When the backup instance is deleted (during
+  # terraform destroy), Azure auto-removes the lock — but it takes time. This
+  # sleep gives Azure enough time to release the lock before the container delete.
+  provisioner "local-exec" {
+    command    = "echo 'Waiting 120s for Azure to release scope lock after backup instance deletion...' && sleep 120"
+    on_failure = continue
+    when       = destroy
+  }
 
   lifecycle {
     create_before_destroy = false
@@ -160,24 +167,6 @@ resource "time_sleep" "wait_for_backup_protection" {
 
   depends_on = [module.backup_vault]
 }
-
-# Azure Data Protection automatically places a CanNotDelete scope lock on the
-# storage account when backup protection is configured. This lock must be removed
-# before the storage account or its containers can be deleted.
-resource "terraform_data" "remove_storage_lock" {
-  depends_on = [azurerm_storage_container.example]
-
-  input = {
-    resource_group  = azurerm_resource_group.example.name
-    storage_account = azurerm_storage_account.example.name
-  }
-
-  provisioner "local-exec" {
-    when       = destroy
-    command    = "az lock list --resource-group ${self.output.resource_group} --resource-name ${self.output.storage_account} --resource-type Microsoft.Storage/storageAccounts --query '[].name' -o tsv | xargs -rI {} az lock delete --name {} --resource-group ${self.output.resource_group} --resource-name ${self.output.storage_account} --resource-type Microsoft.Storage/storageAccounts"
-    on_failure = continue
-  }
-}
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -202,7 +191,6 @@ The following resources are used by this module:
 - [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
 - [azurerm_storage_container.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
-- [terraform_data.remove_storage_lock](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) (resource)
 - [time_sleep.wait_for_backup_protection](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
 
 <!-- markdownlint-disable MD013 -->
