@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.5.0, < 4.0"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = ">= 0.9.0, < 1.0"
+    }
   }
 }
 
@@ -141,10 +145,18 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   role_definition_name = "Storage Account Backup Contributor"
 }
 
+# Wait for Azure to finish configuring backup protection before allowing destroy.
+# The backup instance transitions asynchronously through ConfiguringProtection
+# status after creation. Attempting to delete during this state returns a 400.
+resource "time_sleep" "wait_for_backup_protection" {
+  destroy_duration = "180s"
+
+  depends_on = [module.backup_vault]
+}
+
 # Azure Data Protection automatically places a CanNotDelete scope lock on the
 # storage account when backup protection is configured. This lock must be removed
-# before the storage account or its containers can be deleted. This resource runs
-# az CLI during destroy to remove the lock, ensuring clean teardown.
+# before the storage account or its containers can be deleted.
 resource "terraform_data" "remove_storage_lock" {
   depends_on = [azurerm_storage_container.example]
 
