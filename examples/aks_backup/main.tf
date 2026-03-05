@@ -66,7 +66,7 @@ resource "azurerm_kubernetes_cluster" "example" {
     temporary_name_for_rotation = "tempnodepool"
     type                        = "VirtualMachineScaleSets"
     vm_size                     = "Standard_D4s_v3"
-    zones                       = ["1", "2"]
+    zones                       = ["2", "3"]
 
     upgrade_settings {
       max_surge                     = "33%"

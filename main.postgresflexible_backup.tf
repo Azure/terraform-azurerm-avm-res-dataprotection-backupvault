@@ -136,6 +136,7 @@ resource "azapi_resource" "backup_instance_postgresql_flexible_server" {
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_query_parameters   = { "permanent" = ["true"] }
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true

@@ -158,6 +158,7 @@ resource "azapi_resource" "backup_instance_adls_storage" {
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_query_parameters   = { "permanent" = ["true"] }
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true
@@ -184,4 +185,12 @@ resource "azapi_resource" "backup_instance_adls_storage" {
       error_message = "storage_account_id must be provided for ADLS backup instance '${each.key}'."
     }
   }
+}
+
+resource "time_sleep" "wait_for_backup_instance_adls_storage" {
+  for_each = azapi_resource.backup_instance_adls_storage
+
+  create_duration = var.wait_for_backup_instance_configure_duration
+
+  depends_on = [azapi_resource.backup_instance_adls_storage]
 }
