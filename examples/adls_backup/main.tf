@@ -64,20 +64,16 @@ resource "azurerm_storage_container" "example" {
   name                  = "example-filesystem"
   container_access_type = "private"
   storage_account_id    = azurerm_storage_account.example.id
+}
 
-  # Azure Data Protection places a CanNotDelete scope lock on the storage account
-  # when protection is configured. When the backup instance is deleted (during
-  # terraform destroy), Azure auto-removes the lock — but it takes time. This
-  # sleep gives Azure enough time to release the lock before the container delete.
-  provisioner "local-exec" {
-    command    = "echo 'Waiting 120s for Azure to release scope lock after backup instance deletion...' && sleep 120"
-    on_failure = continue
-    when       = destroy
-  }
+# Create a time_sleep resource to wait
+resource "time_sleep" "wait_for_lock_release" {
+  destroy_duration = "180s"
 
-  lifecycle {
-    create_before_destroy = false
-  }
+  depends_on = [
+    azurerm_storage_container.example,
+    azurerm_storage_account.example
+  ]
 }
 
 # Module Call for Backup Vault
@@ -136,15 +132,15 @@ module "backup_vault" {
     }
   }
   enable_telemetry = true
-  lock             = null # Disable management lock to prevent destroy conflicts
-  # Configure managed identity
+  lock             = null
   managed_identities = {
     system_assigned = true
   }
   soft_delete = "Off"
+
+  depends_on = [time_sleep.wait_for_lock_release]
 }
 
-# Create role assignment outside the module to avoid circular dependencies
 resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   principal_id         = module.backup_vault.identity_principal_id
   scope                = azurerm_resource_group.example.id
@@ -152,11 +148,3 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   role_definition_name = "Storage Account Backup Contributor"
 }
 
-# Wait for Azure to finish configuring backup protection before allowing destroy.
-# The backup instance transitions asynchronously through ConfiguringProtection
-# status after creation. Attempting to delete during this state returns a 400.
-resource "time_sleep" "wait_for_backup_protection" {
-  destroy_duration = "180s"
-
-  depends_on = [module.backup_vault]
-}
