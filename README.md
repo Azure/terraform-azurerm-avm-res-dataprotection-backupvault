@@ -399,6 +399,14 @@ object({
 
 Default: `{}`
 
+### <a name="input_permanent_delete_on_destroy"></a> [permanent\_delete\_on\_destroy](#input\_permanent\_delete\_on\_destroy)
+
+Description: Whether backup instances should be permanently deleted on destroy by setting the `permanent=true` query parameter. Set to false to use service default delete behavior.
+
+Type: `bool`
+
+Default: `true`
+
 ### <a name="input_replicated_regions"></a> [replicated\_regions](#input\_replicated\_regions)
 
 Description: List of replicated regions for the Backup Vault. Only applicable for GeoRedundant vaults.
@@ -465,8 +473,8 @@ Default: `{}`
 
 ### <a name="input_soft_delete"></a> [soft\_delete](#input\_soft\_delete)
 
-Description: The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to AlwaysOn.  
-Note: API version 2025-09-01 requires AlwaysOn soft delete. Once set to AlwaysOn, the setting cannot be changed.
+Description: The state of soft delete for this Backup Vault.  
+API version 2025-09-01 requires AlwaysOn soft delete. Defaults to AlwaysOn and cannot be changed.
 
 Type: `string`
 

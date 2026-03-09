@@ -406,10 +406,21 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "permanent_delete_on_destroy" {
+  type        = bool
+  default     = true
+  description = "Whether backup instances should be permanently deleted on destroy by setting the `permanent=true` query parameter. Set to false to use service default delete behavior."
+}
+
 variable "replicated_regions" {
   type        = list(string)
   default     = []
   description = "List of replicated regions for the Backup Vault. Only applicable for GeoRedundant vaults."
+
+  validation {
+    condition     = var.redundancy == "GeoRedundant" || length(var.replicated_regions) == 0
+    error_message = "replicated_regions can only be set when redundancy is GeoRedundant."
+  }
 }
 
 variable "retention_duration_in_days" {
@@ -458,13 +469,13 @@ variable "soft_delete" {
   type        = string
   default     = "AlwaysOn"
   description = <<DESCRIPTION
-The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to AlwaysOn.
-Note: API version 2025-09-01 requires AlwaysOn soft delete. Once set to AlwaysOn, the setting cannot be changed.
+The state of soft delete for this Backup Vault.
+API version 2025-09-01 requires AlwaysOn soft delete. Defaults to AlwaysOn and cannot be changed.
 DESCRIPTION
 
   validation {
-    condition     = contains(["AlwaysOn", "Off", "On"], var.soft_delete)
-    error_message = "soft_delete must be one of: AlwaysOn, Off, On."
+    condition     = var.soft_delete == "AlwaysOn"
+    error_message = "soft_delete must be AlwaysOn for API version 2025-09-01."
   }
 }
 

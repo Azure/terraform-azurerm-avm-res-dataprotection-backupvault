@@ -31,7 +31,7 @@ resource "azapi_resource" "backup_vault" {
           alertsForAllJobFailures = var.alerts_for_all_job_failures
         }
       } : null
-      replicatedRegions = length(var.replicated_regions) > 0 ? var.replicated_regions : null
+      replicatedRegions = var.redundancy == "GeoRedundant" && length(var.replicated_regions) > 0 ? var.replicated_regions : null
       securitySettings = {
         softDeleteSettings = {
           state                   = var.soft_delete
