@@ -4,7 +4,7 @@ resource "azapi_resource" "backup_policy_blob_storage" {
 
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
-  type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
+  type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-09-01"
   body = {
     properties = {
       objectType = "BackupPolicy"
@@ -127,7 +127,7 @@ resource "azapi_resource" "backup_instance_blob_storage" {
   location  = var.location
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
-  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
+  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
   body = {
     properties = {
       friendlyName = each.value.name
@@ -156,6 +156,7 @@ resource "azapi_resource" "backup_instance_blob_storage" {
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_query_parameters   = var.permanent_delete_on_destroy ? { "permanent" = ["true"] } : null
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true
@@ -182,4 +183,12 @@ resource "azapi_resource" "backup_instance_blob_storage" {
       error_message = "storage_account_id must be provided for blob backup instance '${each.key}'."
     }
   }
+}
+
+resource "time_sleep" "wait_for_backup_instance_blob_storage" {
+  for_each = azapi_resource.backup_instance_blob_storage
+
+  create_duration = var.wait_for_backup_instance_configure_duration
+
+  depends_on = [azapi_resource.backup_instance_blob_storage]
 }

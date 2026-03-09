@@ -4,7 +4,7 @@ resource "azapi_resource" "backup_policy_postgresql" {
 
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
-  type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-07-01"
+  type      = "Microsoft.DataProtection/backupVaults/backupPolicies@2025-09-01"
   body = {
     properties = {
       objectType      = "BackupPolicy"
@@ -113,7 +113,7 @@ resource "azapi_resource" "backup_instance_postgresql" {
   location  = var.location
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
-  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-07-01"
+  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
   body = {
     properties = {
       policyId     = azapi_resource.backup_policy_postgresql[each.value.backup_policy_key].id
@@ -140,6 +140,7 @@ resource "azapi_resource" "backup_instance_postgresql" {
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
+  delete_query_parameters   = var.permanent_delete_on_destroy ? { "permanent" = ["true"] } : null
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true

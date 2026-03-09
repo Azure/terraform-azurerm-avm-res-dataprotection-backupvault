@@ -108,7 +108,7 @@ resource "time_sleep" "wait_policy" {
 # Configure CMK using azapi_update_resource to avoid azurerm provider 406 bugs
 resource "azapi_update_resource" "cmk" {
   resource_id = module.backup_vault.resource_id
-  type        = "Microsoft.DataProtection/backupVaults@2025-07-01"
+  type        = "Microsoft.DataProtection/backupVaults@2025-09-01"
   body = {
     properties = {
       securitySettings = {

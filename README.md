@@ -12,6 +12,13 @@ To use this module in your Terraform configuration, you'll need to provide value
 - Supports AVM telemetry and tagging.
 - Flexible configuration for private DNS zone group management.
 
+## Deprecated: PostgreSQL Single Server Backup
+
+Azure Database for PostgreSQL Single Server was [retired on 2025-03-28](https://techcommunity.microsoft.com/blog/adforpostgresql/retiring-azure-database-for-postgresql-single-server-in-2025/3783783). The `postgresql` backup type in this module targets the retired Single Server service and can no longer be used for new deployments.
+
+- **For new PostgreSQL backups**, use the `postgresql_flexible` backup type which targets PostgreSQL Flexible Server. See the `postgres_flexible_backup` example.
+- **For legacy Single Server backup support**, use [v1.2.0](https://github.com/Azure/terraform-azurerm-avm-res-dataprotection-backupvault/releases/tag/v1.2.0) of this module.
+
 ## Example Usage
 
 Here is an example of how you can use this module in your Terraform configuration:
@@ -79,6 +86,8 @@ The following resources are used by this module:
 - [azapi_update_resource.cmk](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/update_resource) (resource)
 - [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
+- [time_sleep.wait_for_backup_instance_adls_storage](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
+- [time_sleep.wait_for_backup_instance_blob_storage](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
 - [time_sleep.wait_for_backup_instance_disk](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
 - [azapi_client_config.current](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
 - [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
@@ -125,6 +134,15 @@ Type: `string`
 ## Optional Inputs
 
 The following input variables are optional (have default values):
+
+### <a name="input_alerts_for_all_job_failures"></a> [alerts\_for\_all\_job\_failures](#input\_alerts\_for\_all\_job\_failures)
+
+Description: Azure Monitor alert setting for all job failures. Valid options: "Enabled", "Disabled". Defaults to null (not set).  
+When set, configures monitoringSettings.azureMonitorAlertSettings.alertsForAllJobFailures on the vault.
+
+Type: `string`
+
+Default: `null`
 
 ### <a name="input_backup_instances"></a> [backup\_instances](#input\_backup\_instances)
 
@@ -261,6 +279,15 @@ Type: `bool`
 
 Default: `false`
 
+### <a name="input_cross_subscription_restore_state"></a> [cross\_subscription\_restore\_state](#input\_cross\_subscription\_restore\_state)
+
+Description: Cross-subscription restore state for the Backup Vault.  
+Valid options: "Enabled", "Disabled", "PermanentlyDisabled". Defaults to null (not set).
+
+Type: `string`
+
+Default: `null`
+
 ### <a name="input_customer_managed_key"></a> [customer\_managed\_key](#input\_customer\_managed\_key)
 
 Description: Customer-managed key configuration for encrypting the Backup Vault, following the AVM interface.
@@ -372,6 +399,22 @@ object({
 
 Default: `{}`
 
+### <a name="input_permanent_delete_on_destroy"></a> [permanent\_delete\_on\_destroy](#input\_permanent\_delete\_on\_destroy)
+
+Description: Whether backup instances should be permanently deleted on destroy by setting the `permanent=true` query parameter. Set to false to use service default delete behavior.
+
+Type: `bool`
+
+Default: `true`
+
+### <a name="input_replicated_regions"></a> [replicated\_regions](#input\_replicated\_regions)
+
+Description: List of replicated regions for the Backup Vault. Only applicable for GeoRedundant vaults.
+
+Type: `list(string)`
+
+Default: `[]`
+
 ### <a name="input_resource_guard_enabled"></a> [resource\_guard\_enabled](#input\_resource\_guard\_enabled)
 
 Description: Controls whether an Azure Data Protection Resource Guard is deployed to protect the backup vault from accidental or malicious operations.
@@ -430,12 +473,12 @@ Default: `{}`
 
 ### <a name="input_soft_delete"></a> [soft\_delete](#input\_soft\_delete)
 
-Description: The state of soft delete for this Backup Vault. Valid options: AlwaysOn, Off, On. Defaults to On.  
-Once set to AlwaysOn, the setting cannot be changed.
+Description: The state of soft delete for this Backup Vault.  
+API version 2025-09-01 requires AlwaysOn soft delete. Defaults to AlwaysOn and cannot be changed.
 
 Type: `string`
 
-Default: `"Off"`
+Default: `"AlwaysOn"`
 
 ### <a name="input_tags"></a> [tags](#input\_tags)
 

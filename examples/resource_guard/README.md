@@ -77,8 +77,10 @@ module "backup_vault" {
     CreatedBy   = "Terraform"
   }
   # Optional: exclude specific operations from protection
+  # Delete is excluded to allow terraform destroy to work without MUA unlock
   vault_critical_operation_exclusion_list = [
-    "Update" # Allow updates without Resource Guard protection
+    "Delete", # Allow deletes without Resource Guard protection (required for terraform destroy)
+    "Update"  # Allow updates without Resource Guard protection
   ]
 }
 
