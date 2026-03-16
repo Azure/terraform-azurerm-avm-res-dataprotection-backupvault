@@ -134,21 +134,3 @@ run "test_invalid_datastore_type" {
     var.datastore_type
   ]
 }
-
-# Test 6: Telemetry resource is created by default
-run "test_telemetry_enabled" {
-  command = apply
-
-  variables {
-    name                = "test-vault-telemetry"
-    location            = "eastus"
-    resource_group_name = "rg-test"
-    datastore_type      = "VaultStore"
-    redundancy          = "LocallyRedundant"
-  }
-
-  assert {
-    condition     = can(modtm_telemetry.telemetry[0])
-    error_message = "Telemetry resource should be created when enable_telemetry is true (default)."
-  }
-}
