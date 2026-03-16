@@ -99,6 +99,20 @@ module "backup_vault_zone_redundant" {
   soft_delete                = "AlwaysOn"
 }
 
+# Archive store (VaultStore is automatically added to storageSettings)
+module "backup_vault_archive_store" {
+  source = "../../"
+
+  datastore_type             = "ArchiveStore"
+  location                   = local.test_regions.primary_region
+  name                       = "${module.naming.recovery_services_vault.name_unique}-archive"
+  redundancy                 = "LocallyRedundant"
+  resource_group_name        = azurerm_resource_group.example.name
+  enable_telemetry           = true
+  retention_duration_in_days = 30
+  soft_delete                = "AlwaysOn"
+}
+
 # Define regions for redundancy options
 locals {
   test_regions = {

@@ -102,7 +102,8 @@ The following input variables are required:
 ### <a name="input_datastore_type"></a> [datastore\_type](#input\_datastore\_type)
 
 Description: Specifies the type of the datastore. Changing this forces a new resource to be created.  
-Valid options: ArchiveStore, OperationalStore, SnapshotStore, VaultStore.
+Valid options: ArchiveStore, OperationalStore, SnapshotStore, VaultStore.  
+Note: When ArchiveStore is specified, a VaultStore entry is automatically included in storageSettings as required by the Azure API.
 
 Type: `string`
 
