@@ -29,6 +29,14 @@ run "test_vaultstore" {
     condition     = azapi_resource.backup_vault.name == "test-vault-store-default"
     error_message = "Backup vault name should match the provided name."
   }
+
+  assert {
+    condition = (
+      length(azapi_resource.backup_vault.body.properties.storageSettings) == 1 &&
+      azapi_resource.backup_vault.body.properties.storageSettings[0].datastoreType == "VaultStore"
+    )
+    error_message = "VaultStore configuration should result in a single storageSettings entry with datastoreType 'VaultStore'."
+  }
 }
 
 # Test 2: ArchiveStore creates a vault successfully (the fix under test)
@@ -47,9 +55,44 @@ run "test_archivestore" {
     condition     = azapi_resource.backup_vault.name == "test-vault-archive-store"
     error_message = "Backup vault with ArchiveStore datastore type should be created."
   }
+
+  assert {
+    condition = (
+      length(azapi_resource.backup_vault.body.properties.storageSettings) == 2 &&
+      azapi_resource.backup_vault.body.properties.storageSettings[0].datastoreType == "ArchiveStore" &&
+      azapi_resource.backup_vault.body.properties.storageSettings[1].datastoreType == "VaultStore"
+    )
+    error_message = "ArchiveStore configuration should result in two storageSettings entries: ArchiveStore and its companion VaultStore."
+  }
 }
 
-# Test 3: OperationalStore creates a vault successfully
+# Test 3: SnapshotStore creates a vault successfully
+run "test_snapshotstore" {
+  command = apply
+
+  variables {
+    name                = "test-vault-snapshot-store"
+    location            = "eastus"
+    resource_group_name = "rg-test"
+    datastore_type      = "SnapshotStore"
+    redundancy          = "LocallyRedundant"
+  }
+
+  assert {
+    condition     = azapi_resource.backup_vault.name == "test-vault-snapshot-store"
+    error_message = "Backup vault with SnapshotStore datastore type should be created."
+  }
+
+  assert {
+    condition = (
+      length(azapi_resource.backup_vault.body.properties.storageSettings) == 1 &&
+      azapi_resource.backup_vault.body.properties.storageSettings[0].datastoreType == "SnapshotStore"
+    )
+    error_message = "SnapshotStore configuration should result in a single storageSettings entry with datastoreType 'SnapshotStore'."
+  }
+}
+
+# Test 4: OperationalStore creates a vault successfully
 run "test_operationalstore" {
   command = apply
 
@@ -65,9 +108,17 @@ run "test_operationalstore" {
     condition     = azapi_resource.backup_vault.name == "test-vault-operational"
     error_message = "Backup vault with OperationalStore should be created."
   }
+
+  assert {
+    condition = (
+      length(azapi_resource.backup_vault.body.properties.storageSettings) == 1 &&
+      azapi_resource.backup_vault.body.properties.storageSettings[0].datastoreType == "OperationalStore"
+    )
+    error_message = "OperationalStore configuration should result in a single storageSettings entry with datastoreType 'OperationalStore'."
+  }
 }
 
-# Test 4: Invalid datastore_type is rejected
+# Test 5: Invalid datastore_type is rejected
 run "test_invalid_datastore_type" {
   command = plan
 
@@ -84,7 +135,7 @@ run "test_invalid_datastore_type" {
   ]
 }
 
-# Test 5: Telemetry resource is created by default
+# Test 6: Telemetry resource is created by default
 run "test_telemetry_enabled" {
   command = apply
 
