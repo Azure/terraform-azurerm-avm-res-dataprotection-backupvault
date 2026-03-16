@@ -148,7 +148,7 @@ run "test_telemetry_enabled" {
   }
 
   assert {
-    condition     = can(modtm_telemetry.telemetry)
+    condition     = length(modtm_telemetry.telemetry) == 1
     error_message = "Telemetry resource should be created when enable_telemetry is true (default)."
   }
 }
