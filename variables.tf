@@ -6,6 +6,7 @@ variable "datastore_type" {
   description = <<DESCRIPTION
 Specifies the type of the datastore. Changing this forces a new resource to be created.
 Valid options: ArchiveStore, OperationalStore, SnapshotStore, VaultStore.
+Note: When ArchiveStore is specified, a VaultStore entry is automatically included in storageSettings as required by the Azure API.
 DESCRIPTION
 
   validation {

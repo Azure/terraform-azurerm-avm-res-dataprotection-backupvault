@@ -14,10 +14,16 @@ resource "azapi_resource" "backup_vault" {
   type      = "Microsoft.DataProtection/backupVaults@2025-09-01"
   body = {
     properties = {
-      storageSettings = [{
-        datastoreType = var.datastore_type
-        type          = var.redundancy
-      }]
+      storageSettings = concat(
+        [{
+          datastoreType = var.datastore_type
+          type          = var.redundancy
+        }],
+        var.datastore_type == "ArchiveStore" ? [{
+          datastoreType = "VaultStore"
+          type          = var.redundancy
+        }] : []
+      )
       featureSettings = {
         crossRegionRestoreSettings = var.redundancy == "GeoRedundant" ? {
           state = var.cross_region_restore_enabled ? "Enabled" : "Disabled"
