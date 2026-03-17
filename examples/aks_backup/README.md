@@ -9,17 +9,9 @@ terraform {
   required_version = ">= 1.9, < 2.0"
 
   required_providers {
-    azapi = {
-      source  = "Azure/azapi"
-      version = "~> 2.4"
-    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
-    }
-    time = {
-      source  = "hashicorp/time"
-      version = ">= 0.9.1"
     }
   }
 }
@@ -29,284 +21,248 @@ provider "azurerm" {
   storage_use_azuread = true
 }
 
-provider "azapi" {}
-
 data "azurerm_client_config" "current" {}
 
 module "naming" {
   source  = "Azure/naming/azurerm"
   version = "0.3.0"
 
-  suffix = ["aks"]
+  suffix = ["aks", "backup"]
+}
+
+locals {
+  aks_cluster_name               = module.naming.kubernetes_cluster.name_unique
+  backup_extension_name          = "azure-aks-backup"
+  backup_extension_type          = "Microsoft.DataProtection.Kubernetes"
+  backup_resource_group_location = "eastus"
+  backup_resource_group_name     = "${module.naming.resource_group.name_unique}-data"
+  backup_storage_name            = module.naming.storage_account.name_unique
+  backuppolicy_name              = "aks-policy"
+  backupvault_name               = module.naming.recovery_services_vault.name_unique
+  datastore_type                 = "VaultStore"
+  dns_prefix                     = "aksbackup"
+  redundancy                     = "LocallyRedundant"
+  resource_group_location        = "eastus"
+  resource_group_name            = module.naming.resource_group.name_unique
 }
 
 # ---------------------------------------------------------------------------
 # Resource groups
 # ---------------------------------------------------------------------------
-resource "azurerm_resource_group" "example" {
-  location = "eastus2"
-  name     = module.naming.resource_group.name_unique
+# Create a resource group for the backup vault and AKS cluster.
+resource "azurerm_resource_group" "rg" {
+  location = local.resource_group_location
+  name     = local.resource_group_name
 }
 
-resource "azurerm_resource_group" "snap" {
-  location = azurerm_resource_group.example.location
-  name     = "${module.naming.resource_group.name_unique}-snap"
+# Create a resource group for backup snapshots and storage.
+resource "azurerm_resource_group" "backuprg" {
+  location = local.backup_resource_group_location
+  name     = local.backup_resource_group_name
 }
 
 # ---------------------------------------------------------------------------
 # AKS cluster
 # ---------------------------------------------------------------------------
-resource "azurerm_kubernetes_cluster" "example" {
-  location            = azurerm_resource_group.example.location
-  name                = module.naming.kubernetes_cluster.name_unique
-  resource_group_name = azurerm_resource_group.example.name
-  dns_prefix          = "aks${substr(module.naming.kubernetes_cluster.name_unique, -6, -1)}"
-  sku_tier            = "Standard"
+resource "azurerm_kubernetes_cluster" "akscluster" {
+  location            = azurerm_resource_group.rg.location
+  name                = local.aks_cluster_name
+  resource_group_name = azurerm_resource_group.rg.name
+  dns_prefix          = local.dns_prefix
 
   default_node_pool {
-    name                        = "default"
-    auto_scaling_enabled        = true
-    max_count                   = 9
-    min_count                   = 3
-    orchestrator_version        = null
-    os_disk_type                = "Managed"
-    temporary_name_for_rotation = "tempnodepool"
-    type                        = "VirtualMachineScaleSets"
-    vm_size                     = "Standard_D4s_v3"
-    zones                       = ["2", "3"]
-
-    upgrade_settings {
-      max_surge                     = "33%"
-      drain_timeout_in_minutes      = 15
-      node_soak_duration_in_minutes = 15
-    }
+    name       = "agentpool"
+    node_count = 1
+    vm_size    = "Standard_A4_v2"
   }
   identity {
     type = "SystemAssigned"
   }
-}
-
-# ---------------------------------------------------------------------------
-# Storage account — required by the AKS Data Protection extension
-# ---------------------------------------------------------------------------
-resource "azurerm_storage_account" "example" {
-  account_replication_type        = "ZRS"
-  account_tier                    = "Standard"
-  location                        = azurerm_resource_group.example.location
-  name                            = lower(replace("stgaks${substr(module.naming.resource_group.name_unique, -12, -1)}", "-", ""))
-  resource_group_name             = azurerm_resource_group.example.name
-  allow_nested_items_to_be_public = false
-  shared_access_key_enabled       = false
-}
-
-resource "azurerm_storage_container" "example" {
-  name                  = "backup"
-  container_access_type = "private"
-  storage_account_id    = azurerm_storage_account.example.id
-}
-
-# ---------------------------------------------------------------------------
-# Kubernetes Data Protection extension
-# ---------------------------------------------------------------------------
-resource "azurerm_kubernetes_cluster_extension" "backup_extension" {
-  cluster_id     = azurerm_kubernetes_cluster.example.id
-  extension_type = "Microsoft.DataProtection.Kubernetes"
-  name           = "backup-extension"
-  configuration_settings = {
-    "configuration.backupStorageLocation.bucket"                = azurerm_storage_container.example.name
-    "configuration.backupStorageLocation.config.resourceGroup"  = azurerm_resource_group.example.name
-    "configuration.backupStorageLocation.config.storageAccount" = azurerm_storage_account.example.name
-    "configuration.backupStorageLocation.config.subscriptionId" = data.azurerm_client_config.current.subscription_id
-    "credentials.tenantId"                                      = data.azurerm_client_config.current.tenant_id
+  network_profile {
+    network_plugin    = "kubenet"
+    load_balancer_sku = "standard"
   }
-  release_namespace = "dataprotection-microsoft"
-  release_train     = "stable"
-}
-
-# Allow time for the extension pods to become ready before assigning roles
-resource "time_sleep" "wait_for_extension" {
-  create_duration = "5m"
-
-  depends_on = [azurerm_kubernetes_cluster_extension.backup_extension]
-}
-
-# Grant the extension MSI write access to the backup storage account
-resource "azurerm_role_assignment" "extension_storage_access" {
-  principal_id         = azurerm_kubernetes_cluster_extension.backup_extension.aks_assigned_identity[0].principal_id
-  scope                = azurerm_storage_account.example.id
-  role_definition_name = "Storage Account Contributor"
-
-  depends_on = [time_sleep.wait_for_extension]
-}
-
-# ---------------------------------------------------------------------------
-# Backup vault + policy (phase 1 — vault MSI must exist before RBAC below)
-# The backup instance is intentionally omitted here so that all required RBAC
-# and the trusted-access binding can be established before the instance is
-# created.  See the azapi_resource.backup_instance block further below.
-# ---------------------------------------------------------------------------
-module "backup_vault" {
-  source = "../../"
-
-  datastore_type      = "VaultStore"
-  location            = azurerm_resource_group.example.location
-  name                = "${module.naming.recovery_services_vault.name_unique}-vault"
-  redundancy          = "LocallyRedundant"
-  resource_group_name = azurerm_resource_group.example.name
-  backup_policies = {
-    aks = {
-      type = "kubernetes"
-      name = "${module.naming.kubernetes_cluster.name_unique}-policy"
-
-      backup_repeating_time_intervals = ["R/2024-12-01T02:30:00+00:00/P1W"]
-      time_zone                       = "UTC"
-
-      default_retention_life_cycle = {
-        data_store_type = "OperationalStore"
-        duration        = "P14D"
-      }
-
-      retention_rules = [
-        {
-          name     = "Weekly"
-          priority = 25
-          duration = "P84D"
-          criteria = [{ absolute_criteria = "FirstOfWeek" }]
-        },
-        {
-          name     = "Monthly"
-          priority = 20
-          duration = "P365D"
-          criteria = [{ absolute_criteria = "FirstOfMonth" }]
-        }
-      ]
-    }
-  }
-  enable_telemetry = true
-  managed_identities = {
-    system_assigned = true
-  }
-
-  depends_on = [time_sleep.wait_for_extension]
-}
-
-# ---------------------------------------------------------------------------
-# RBAC — all roles the vault MSI and AKS MSI need for backup operations
-# These must be in place before the backup instance is created.
-# ---------------------------------------------------------------------------
-
-# Grants the backup vault's managed identity operator access to the AKS cluster
-resource "azurerm_kubernetes_cluster_trusted_access_role_binding" "backup_access" {
-  kubernetes_cluster_id = azurerm_kubernetes_cluster.example.id
-  name                  = "backup-operator-binding"
-  roles                 = ["Microsoft.DataProtection/backupVaults/backup-operator"]
-  source_resource_id    = module.backup_vault.backup_vault_id
-}
-
-resource "azurerm_role_assignment" "required_roles" {
-  for_each = {
-    vault_cluster_reader = {
-      role         = "Reader"
-      scope        = azurerm_kubernetes_cluster.example.id
-      principal_id = module.backup_vault.identity_principal_id
-    }
-    vault_snap_rg_reader = {
-      role         = "Reader"
-      scope        = azurerm_resource_group.snap.id
-      principal_id = module.backup_vault.identity_principal_id
-    }
-    vault_snapshot_contributor = {
-      role         = "Disk Snapshot Contributor"
-      scope        = azurerm_resource_group.snap.id
-      principal_id = module.backup_vault.identity_principal_id
-    }
-    vault_disk_operator = {
-      role         = "Data Operator for Managed Disks"
-      scope        = azurerm_resource_group.snap.id
-      principal_id = module.backup_vault.identity_principal_id
-    }
-    vault_storage_contributor = {
-      role         = "Storage Blob Data Contributor"
-      scope        = azurerm_storage_account.example.id
-      principal_id = module.backup_vault.identity_principal_id
-    }
-    cluster_snap_contributor = {
-      role         = "Contributor"
-      scope        = azurerm_resource_group.snap.id
-      principal_id = azurerm_kubernetes_cluster.example.identity[0].principal_id
-    }
-  }
-
-  principal_id         = each.value.principal_id
-  scope                = each.value.scope
-  role_definition_name = each.value.role
-}
-
-# Allow RBAC assignments to propagate across Azure AD before creating the
-# backup instance — typically takes up to 2 minutes.
-resource "time_sleep" "wait_for_rbac" {
-  create_duration = "2m"
 
   depends_on = [
-    azurerm_kubernetes_cluster_trusted_access_role_binding.backup_access,
-    azurerm_role_assignment.extension_storage_access,
-    azurerm_role_assignment.required_roles,
+    azurerm_resource_group.rg,
+    azurerm_resource_group.backuprg,
   ]
 }
 
 # ---------------------------------------------------------------------------
-# Backup instance (phase 2 — created only after all RBAC is in place)
+# Backup vault
 # ---------------------------------------------------------------------------
-resource "azapi_resource" "backup_instance" {
-  location  = azurerm_resource_group.example.location
-  name      = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
-  parent_id = module.backup_vault.backup_vault_id
-  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
-  body = {
-    properties = {
-      friendlyName = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
-      objectType   = "BackupInstance"
-      policyInfo = {
-        policyId = module.backup_vault.kubernetes_backup_policy_ids["aks"]
+module "backup_vault" {
+  source = "../../"
+
+  datastore_type      = local.datastore_type
+  location            = azurerm_resource_group.rg.location
+  name                = local.backupvault_name
+  redundancy          = local.redundancy
+  resource_group_name = azurerm_resource_group.rg.name
+  backup_instances = {
+    akstfbi = {
+      type                         = "kubernetes"
+      name                         = "example-internal-backup-instance"
+      backup_policy_key            = "aks"
+      snapshot_resource_group_name = azurerm_resource_group.backuprg.name
+
+      kubernetes_cluster_id = azurerm_kubernetes_cluster.akscluster.id
+      backup_datasource_parameters = {
+        excluded_namespaces              = []
+        excluded_resource_types          = []
+        cluster_scoped_resources_enabled = true
+        included_namespaces              = []
+        included_resource_types          = []
+        label_selectors                  = []
+        volume_snapshot_enabled          = true
       }
-      dataSourceInfo = {
-        datasourceType   = "Microsoft.ContainerService/managedClusters"
-        objectType       = "DatasourceInfo"
-        resourceId       = azurerm_kubernetes_cluster.example.id
-        resourceLocation = azurerm_resource_group.example.location
-      }
-      dataSourceSetInfo = {
-        objectType = "DatasourceSetInfo"
-        resourceId = azurerm_kubernetes_cluster.example.id
-      }
-      datasourceParameters = {
-        objectType                    = "KubernetesClusterBackupDatasourceParameters"
-        clusterScopedResourcesEnabled = true
-        excludedNamespaces            = ["kube-system", "kube-public"]
-        excludedResourceTypes         = []
-        includedNamespaces            = ["default", "app-namespace"]
-        includedResourceTypes         = []
-        labelSelectors                = []
-        snapshotResourceGroupName     = azurerm_resource_group.snap.name
-        volumeSnapshotEnabled         = true
-      }
-      validationType = "ShallowValidation"
     }
   }
-  ignore_casing             = true
-  ignore_missing_property   = true
-  ignore_null_property      = true
-  schema_validation_enabled = false
+  backup_policies = {
+    aks = {
+      type = "kubernetes"
+      name = local.backuppolicy_name
 
-  depends_on = [time_sleep.wait_for_rbac]
+      backup_repeating_time_intervals = ["R/2026-01-01T00:00:00+00:00/PT4H"]
 
-  lifecycle {
-    ignore_changes = [
-      body.properties.dataSourceInfo.objectType,
-      body.properties.dataSourceSetInfo.objectType,
-    ]
+      default_retention_life_cycle = {
+        duration        = "P7D"
+        data_store_type = "OperationalStore"
+      }
+    }
   }
+  managed_identities = {
+    system_assigned = true
+  }
+  role_assignments = {
+    vault_msi_read_on_cluster = {
+      role_definition_id_or_name = "Reader"
+      scope                      = azurerm_kubernetes_cluster.akscluster.id
+      principal_id               = "system-assigned"
+      description                = "Allow backup vault to read AKS cluster properties for backup purposes."
+      principal_type             = "ServicePrincipal"
+    }
+    vault_msi_read_on_snap_rg = {
+      role_definition_id_or_name = "Reader"
+      scope                      = azurerm_resource_group.backuprg.id
+      principal_id               = "system-assigned"
+      description                = "Allow backup vault to read snapshot resource group properties for backup purposes."
+      principal_type             = "ServicePrincipal"
+    }
+  }
+  soft_delete = "Off"
+
+  depends_on = [azurerm_kubernetes_cluster.akscluster]
 }
+
+# ---------------------------------------------------------------------------
+# Trusted access
+# ---------------------------------------------------------------------------
+# Create a trusted access role binding between AKS and backup vault.
+resource "azurerm_kubernetes_cluster_trusted_access_role_binding" "trustedaccess" {
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.akscluster.id
+  name                  = "backuptrustedaccess"
+  roles                 = ["Microsoft.DataProtection/backupVaults/backup-operator"]
+  source_resource_id    = module.backup_vault.backup_vault_id
+
+  depends_on = [
+    module.backup_vault,
+    azurerm_kubernetes_cluster.akscluster,
+  ]
+}
+
+# ---------------------------------------------------------------------------
+# Backup storage
+# ---------------------------------------------------------------------------
+# Create a storage account used by the AKS backup extension.
+resource "azurerm_storage_account" "backupsa" {
+  account_replication_type = "ZRS"
+  account_tier             = "Standard"
+  location                 = azurerm_resource_group.backuprg.location
+  name                     = local.backup_storage_name
+  resource_group_name      = azurerm_resource_group.backuprg.name
+}
+
+# Create a blob container where backup data is stored.
+resource "azurerm_storage_container" "backupcontainer" {
+  name                  = "tfbackup"
+  container_access_type = "private"
+  storage_account_id    = azurerm_storage_account.backupsa.id
+
+  depends_on = [azurerm_storage_account.backupsa]
+}
+
+# Create backup extension on the AKS cluster.
+resource "azurerm_kubernetes_cluster_extension" "dataprotection" {
+  cluster_id     = azurerm_kubernetes_cluster.akscluster.id
+  extension_type = local.backup_extension_type
+  name           = local.backup_extension_name
+  configuration_settings = {
+    "configuration.backupStorageLocation.bucket"                   = azurerm_storage_container.backupcontainer.name
+    "configuration.backupStorageLocation.config.storageAccount"    = azurerm_storage_account.backupsa.name
+    "configuration.backupStorageLocation.config.resourceGroup"     = azurerm_storage_account.backupsa.resource_group_name
+    "configuration.backupStorageLocation.config.subscriptionId"    = data.azurerm_client_config.current.subscription_id
+    "credentials.tenantId"                                         = data.azurerm_client_config.current.tenant_id
+    "configuration.backupStorageLocation.config.useAAD"            = true
+    "configuration.backupStorageLocation.config.storageAccountURI" = azurerm_storage_account.backupsa.primary_blob_endpoint
+  }
+
+  depends_on = [azurerm_storage_container.backupcontainer]
+}
+
+# ---------------------------------------------------------------------------
+# Role assignments
+# ---------------------------------------------------------------------------
+# Assign role to extension identity on the storage account.
+resource "azurerm_role_assignment" "extensionrole" {
+  principal_id         = azurerm_kubernetes_cluster_extension.dataprotection.aks_assigned_identity[0].principal_id
+  scope                = azurerm_storage_account.backupsa.id
+  role_definition_name = "Storage Blob Data Contributor"
+
+  depends_on = [azurerm_kubernetes_cluster_extension.dataprotection]
+}
+
+# Assign Contributor role to AKS identity over snapshot resource group.
+resource "azurerm_role_assignment" "cluster_msi_contributor_on_snap_rg" {
+  principal_id         = try(azurerm_kubernetes_cluster.akscluster.identity[0].principal_id, null)
+  scope                = azurerm_resource_group.backuprg.id
+  role_definition_name = "Contributor"
+
+  depends_on = [
+    azurerm_kubernetes_cluster.akscluster,
+    azurerm_resource_group.backuprg,
+  ]
+}
+
+# ---------------------------------------------------------------------------
+# Backup instance
+# ---------------------------------------------------------------------------
+# resource "azurerm_data_protection_backup_instance_kubernetes_cluster" "akstfbi" {
+#   name     = "example-external-backup-instance"
+#   location = azurerm_resource_group.backuprg.location
+#   vault_id = module.backup_vault.backup_vault_id
+
+#   kubernetes_cluster_id        = azurerm_kubernetes_cluster.akscluster.id
+#   snapshot_resource_group_name = azurerm_resource_group.backuprg.name
+#   backup_policy_id             = module.backup_vault.kubernetes_backup_policy_ids["aks"]
+
+#   backup_datasource_parameters {
+#     excluded_namespaces              = []
+#     excluded_resource_types          = []
+#     cluster_scoped_resources_enabled = true
+#     included_namespaces              = []
+#     included_resource_types          = []
+#     label_selectors                  = []
+#     volume_snapshot_enabled          = true
+#   }
+
+#   depends_on = [
+#     module.backup_vault,
+#     azurerm_role_assignment.extensionrole,
+#     azurerm_role_assignment.cluster_msi_contributor_on_snap_rg,
+#   ]
+# }
 ```
 
 <!-- markdownlint-disable MD033 -->
@@ -316,28 +272,21 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
-- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.4)
-
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
-
-- <a name="requirement_time"></a> [time](#requirement\_time) (>= 0.9.1)
 
 ## Resources
 
 The following resources are used by this module:
 
-- [azapi_resource.backup_instance](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
-- [azurerm_kubernetes_cluster.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster) (resource)
-- [azurerm_kubernetes_cluster_extension.backup_extension](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster_extension) (resource)
-- [azurerm_kubernetes_cluster_trusted_access_role_binding.backup_access](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster_trusted_access_role_binding) (resource)
-- [azurerm_resource_group.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
-- [azurerm_resource_group.snap](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
-- [azurerm_role_assignment.extension_storage_access](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
-- [azurerm_role_assignment.required_roles](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
-- [azurerm_storage_account.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
-- [azurerm_storage_container.example](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
-- [time_sleep.wait_for_extension](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
-- [time_sleep.wait_for_rbac](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) (resource)
+- [azurerm_kubernetes_cluster.akscluster](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster) (resource)
+- [azurerm_kubernetes_cluster_extension.dataprotection](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster_extension) (resource)
+- [azurerm_kubernetes_cluster_trusted_access_role_binding.trustedaccess](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster_trusted_access_role_binding) (resource)
+- [azurerm_resource_group.backuprg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_resource_group.rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
+- [azurerm_role_assignment.cluster_msi_contributor_on_snap_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
+- [azurerm_role_assignment.extensionrole](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
+- [azurerm_storage_account.backupsa](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
+- [azurerm_storage_container.backupcontainer](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) (resource)
 - [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)
 
 <!-- markdownlint-disable MD013 -->

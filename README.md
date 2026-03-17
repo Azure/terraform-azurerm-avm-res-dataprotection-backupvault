@@ -252,15 +252,17 @@ map(object({
     retention_rules = optional(list(object({
       name     = string
       priority = number
-      duration = optional(string, "P30D")
-      criteria = list(object({
+      duration = string
+
+      criteria = optional(list(object({
         absolute_criteria      = optional(string)
         days_of_month          = optional(list(number))
         days_of_week           = optional(list(string))
         months_of_year         = optional(list(string))
         scheduled_backup_times = optional(list(string))
         weeks_of_month         = optional(list(string))
-      }))
+      })), [])
+
       # Life cycle (for blob policies)
       life_cycle = optional(list(object({
         data_store_type = string

@@ -108,40 +108,74 @@ resource "azapi_resource" "backup_policy_kubernetes_cluster" {
 resource "azapi_resource" "backup_instance_kubernetes_cluster" {
   for_each = local.kubernetes_instances
 
-  location  = var.location
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
   body = {
     properties = {
+      objectType   = "BackupInstance"
+      friendlyName = each.value.name
+
+      dataSourceInfo = {
+        objectType       = "Datasource"
+        datasourceType   = "Microsoft.ContainerService/managedClusters"
+        resourceID       = each.value.kubernetes_cluster_id
+        resourceLocation = var.location
+        resourceName     = element(reverse(split("/", trim(each.value.kubernetes_cluster_id, "/"))), 0)
+        resourceType     = "Microsoft.ContainerService/managedClusters"
+        resourceUri      = each.value.kubernetes_cluster_id
+        resourceProperties = {
+          objectType = "DefaultResourceProperties"
+        }
+      }
+
+      datasourceAuthCredentials = null
+
+      dataSourceSetInfo = {
+        objectType       = "DatasourceSet"
+        datasourceType   = "Microsoft.ContainerService/managedClusters"
+        resourceID       = each.value.kubernetes_cluster_id
+        resourceLocation = var.location
+        resourceName     = element(reverse(split("/", trim(each.value.kubernetes_cluster_id, "/"))), 0)
+        resourceType     = "Microsoft.ContainerService/managedClusters"
+        resourceUri      = each.value.kubernetes_cluster_id
+        resourceProperties = {
+          objectType = "DefaultResourceProperties"
+        }
+      }
+
+      identityDetails = length(try(var.managed_identities.user_assigned_resource_ids, [])) > 0 ? {
+        useSystemAssignedIdentity  = false
+        userAssignedIdentityArmUrl = tolist(var.managed_identities.user_assigned_resource_ids)[0]
+        } : (try(var.managed_identities.system_assigned, false) ? {
+          useSystemAssignedIdentity = true
+      } : null)
+
       policyInfo = {
         policyId = azapi_resource.backup_policy_kubernetes_cluster[each.value.backup_policy_key].id
+        policyParameters = {
+          dataStoreParametersList = [
+            {
+              objectType      = "AzureOperationalStoreParameters"
+              dataStoreType   = "OperationalStore"
+              resourceGroupId = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${each.value.snapshot_resource_group_name}"
+            }
+          ]
+
+          backupDatasourceParametersList = [
+            {
+              objectType                   = "KubernetesClusterBackupDatasourceParameters"
+              excludedNamespaces           = try(each.value.backup_datasource_parameters.excluded_namespaces, [])
+              excludedResourceTypes        = try(each.value.backup_datasource_parameters.excluded_resource_types, [])
+              includeClusterScopeResources = try(each.value.backup_datasource_parameters.cluster_scoped_resources_enabled, false)
+              includedNamespaces           = try(each.value.backup_datasource_parameters.included_namespaces, [])
+              includedResourceTypes        = try(each.value.backup_datasource_parameters.included_resource_types, [])
+              labelSelectors               = try(each.value.backup_datasource_parameters.label_selectors, [])
+              snapshotVolumes              = try(each.value.backup_datasource_parameters.volume_snapshot_enabled, false)
+            }
+          ]
+        }
       }
-      friendlyName = each.value.name
-      objectType   = "BackupInstance"
-      dataSourceInfo = {
-        objectType       = "DatasourceInfo"
-        resourceId       = each.value.kubernetes_cluster_id
-        datasourceType   = "Microsoft.ContainerService/managedClusters"
-        resourceLocation = var.location
-      }
-      datasourceAuthCredentials = null
-      dataSourceSetInfo = {
-        objectType = "DatasourceSetInfo"
-        resourceId = each.value.kubernetes_cluster_id
-      }
-      datasourceParameters = {
-        objectType                    = "KubernetesClusterBackupDatasourceParameters"
-        clusterScopedResourcesEnabled = try(each.value.backup_datasource_parameters.cluster_scoped_resources_enabled, false)
-        excludedNamespaces            = try(each.value.backup_datasource_parameters.excluded_namespaces, [])
-        excludedResourceTypes         = try(each.value.backup_datasource_parameters.excluded_resource_types, [])
-        includedNamespaces            = try(each.value.backup_datasource_parameters.included_namespaces, [])
-        includedResourceTypes         = try(each.value.backup_datasource_parameters.included_resource_types, [])
-        labelSelectors                = try(each.value.backup_datasource_parameters.label_selectors, [])
-        volumeSnapshotEnabled         = try(each.value.backup_datasource_parameters.volume_snapshot_enabled, false)
-        snapshotResourceGroupName     = each.value.snapshot_resource_group_name
-      }
-      validationType = "ShallowValidation"
     }
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
