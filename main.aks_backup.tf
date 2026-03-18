@@ -114,32 +114,49 @@ resource "azapi_resource" "backup_instance_kubernetes_cluster" {
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
   body = {
     properties = {
-      policyInfo = {
-        policyId = azapi_resource.backup_policy_kubernetes_cluster[each.value.backup_policy_key].id
-      }
       friendlyName = each.value.name
       objectType   = "BackupInstance"
       dataSourceInfo = {
-        objectType       = "DatasourceInfo"
-        resourceId       = each.value.kubernetes_cluster_id
         datasourceType   = "Microsoft.ContainerService/managedClusters"
+        objectType       = "Datasource"
+        resourceID       = each.value.kubernetes_cluster_id
         resourceLocation = var.location
+        resourceName     = element(split("/", each.value.kubernetes_cluster_id), length(split("/", each.value.kubernetes_cluster_id)) - 1)
+        resourceType     = "Microsoft.ContainerService/managedClusters"
+        resourceUri      = each.value.kubernetes_cluster_id
       }
-      datasourceAuthCredentials = null
       dataSourceSetInfo = {
-        objectType = "DatasourceSetInfo"
-        resourceId = each.value.kubernetes_cluster_id
+        datasourceType   = "Microsoft.ContainerService/managedClusters"
+        objectType       = "DatasourceSet"
+        resourceID       = each.value.kubernetes_cluster_id
+        resourceLocation = var.location
+        resourceName     = element(split("/", each.value.kubernetes_cluster_id), length(split("/", each.value.kubernetes_cluster_id)) - 1)
+        resourceType     = "Microsoft.ContainerService/managedClusters"
+        resourceUri      = each.value.kubernetes_cluster_id
       }
-      datasourceParameters = {
-        objectType                    = "KubernetesClusterBackupDatasourceParameters"
-        clusterScopedResourcesEnabled = try(each.value.backup_datasource_parameters.cluster_scoped_resources_enabled, false)
-        excludedNamespaces            = try(each.value.backup_datasource_parameters.excluded_namespaces, [])
-        excludedResourceTypes         = try(each.value.backup_datasource_parameters.excluded_resource_types, [])
-        includedNamespaces            = try(each.value.backup_datasource_parameters.included_namespaces, [])
-        includedResourceTypes         = try(each.value.backup_datasource_parameters.included_resource_types, [])
-        labelSelectors                = try(each.value.backup_datasource_parameters.label_selectors, [])
-        volumeSnapshotEnabled         = try(each.value.backup_datasource_parameters.volume_snapshot_enabled, false)
-        snapshotResourceGroupName     = each.value.snapshot_resource_group_name
+      policyInfo = {
+        policyId = azapi_resource.backup_policy_kubernetes_cluster[each.value.backup_policy_key].id
+        policyParameters = {
+          backupDatasourceParametersList = [
+            {
+              objectType                   = "KubernetesClusterBackupDatasourceParameters"
+              includeClusterScopeResources = try(each.value.backup_datasource_parameters.cluster_scoped_resources_enabled, false)
+              snapshotVolumes              = try(each.value.backup_datasource_parameters.volume_snapshot_enabled, false)
+              excludedNamespaces           = try(each.value.backup_datasource_parameters.excluded_namespaces, [])
+              excludedResourceTypes        = try(each.value.backup_datasource_parameters.excluded_resource_types, [])
+              includedNamespaces           = try(each.value.backup_datasource_parameters.included_namespaces, [])
+              includedResourceTypes        = try(each.value.backup_datasource_parameters.included_resource_types, [])
+              labelSelectors               = try(each.value.backup_datasource_parameters.label_selectors, [])
+            }
+          ]
+          dataStoreParametersList = [
+            {
+              objectType      = "AzureOperationalStoreParameters"
+              dataStoreType   = "OperationalStore"
+              resourceGroupId = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${each.value.snapshot_resource_group_name}"
+            }
+          ]
+        }
       }
       validationType = "ShallowValidation"
     }
