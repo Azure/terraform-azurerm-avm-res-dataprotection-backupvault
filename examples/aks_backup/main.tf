@@ -2,10 +2,6 @@ terraform {
   required_version = ">= 1.9, < 2.0"
 
   required_providers {
-    azapi = {
-      source  = "Azure/azapi"
-      version = "~> 2.4"
-    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
@@ -21,8 +17,6 @@ provider "azurerm" {
   features {}
   storage_use_azuread = true
 }
-
-provider "azapi" {}
 
 data "azurerm_client_config" "current" {}
 
@@ -133,10 +127,7 @@ resource "azurerm_role_assignment" "extension_storage_access" {
 }
 
 # ---------------------------------------------------------------------------
-# Backup vault + policy (phase 1 — vault MSI must exist before RBAC below)
-# The backup instance is intentionally omitted here so that all required RBAC
-# and the trusted-access binding can be established before the instance is
-# created.  See the azapi_resource.backup_instance block further below.
+# Backup vault + policy + backup instance
 # ---------------------------------------------------------------------------
 module "backup_vault" {
   source = "../../"
@@ -146,6 +137,24 @@ module "backup_vault" {
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.example.name
+  backup_instances = {
+    aks = {
+      type                         = "kubernetes"
+      name                         = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
+      backup_policy_key            = "aks"
+      kubernetes_cluster_id        = azurerm_kubernetes_cluster.example.id
+      snapshot_resource_group_name = azurerm_resource_group.snap.name
+      backup_datasource_parameters = {
+        excluded_namespaces              = ["kube-system", "kube-public", "kube-node-lease"]
+        excluded_resource_types          = []
+        included_namespaces              = []
+        included_resource_types          = []
+        label_selectors                  = []
+        cluster_scoped_resources_enabled = true
+        volume_snapshot_enabled          = true
+      }
+    }
+  }
   backup_policies = {
     aks = {
       type = "kubernetes"
@@ -185,7 +194,6 @@ module "backup_vault" {
 
 # ---------------------------------------------------------------------------
 # RBAC — all roles the vault MSI and AKS MSI need for backup operations
-# These must be in place before the backup instance is created.
 # ---------------------------------------------------------------------------
 
 # Grants the backup vault's managed identity operator access to the AKS cluster
@@ -233,88 +241,4 @@ resource "azurerm_role_assignment" "required_roles" {
   principal_id         = each.value.principal_id
   scope                = each.value.scope
   role_definition_name = each.value.role
-}
-
-# Allow RBAC assignments to propagate across Azure AD before creating the
-# backup instance — typically takes up to 2 minutes.
-resource "time_sleep" "wait_for_rbac" {
-  create_duration = "2m"
-
-  depends_on = [
-    azurerm_kubernetes_cluster_trusted_access_role_binding.backup_access,
-    azurerm_role_assignment.extension_storage_access,
-    azurerm_role_assignment.required_roles,
-  ]
-}
-
-# ---------------------------------------------------------------------------
-# Backup instance (phase 2 — created only after all RBAC is in place)
-# ---------------------------------------------------------------------------
-resource "azapi_resource" "backup_instance" {
-  location  = azurerm_resource_group.example.location
-  name      = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
-  parent_id = module.backup_vault.backup_vault_id
-  type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
-  body = {
-    properties = {
-      friendlyName = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
-      objectType   = "BackupInstance"
-      dataSourceInfo = {
-        datasourceType   = "Microsoft.ContainerService/managedClusters"
-        objectType       = "Datasource"
-        resourceID       = azurerm_kubernetes_cluster.example.id
-        resourceLocation = azurerm_resource_group.example.location
-        resourceName     = azurerm_kubernetes_cluster.example.name
-        resourceType     = "Microsoft.ContainerService/managedClusters"
-        resourceUri      = azurerm_kubernetes_cluster.example.id
-      }
-      dataSourceSetInfo = {
-        datasourceType   = "Microsoft.ContainerService/managedClusters"
-        objectType       = "DatasourceSet"
-        resourceID       = azurerm_kubernetes_cluster.example.id
-        resourceLocation = azurerm_resource_group.example.location
-        resourceName     = azurerm_kubernetes_cluster.example.name
-        resourceType     = "Microsoft.ContainerService/managedClusters"
-        resourceUri      = azurerm_kubernetes_cluster.example.id
-      }
-      policyInfo = {
-        policyId = module.backup_vault.kubernetes_backup_policy_ids["aks"]
-        policyParameters = {
-          backupDatasourceParametersList = [
-            {
-              objectType                   = "KubernetesClusterBackupDatasourceParameters"
-              includeClusterScopeResources = true
-              snapshotVolumes              = true
-              excludedNamespaces           = ["kube-system", "kube-public", "kube-node-lease"]
-              excludedResourceTypes        = []
-              includedNamespaces           = []
-              includedResourceTypes        = []
-              labelSelectors               = []
-            }
-          ]
-          dataStoreParametersList = [
-            {
-              objectType      = "AzureOperationalStoreParameters"
-              dataStoreType   = "OperationalStore"
-              resourceGroupId = azurerm_resource_group.snap.id
-            }
-          ]
-        }
-      }
-      validationType = "ShallowValidation"
-    }
-  }
-  ignore_casing             = true
-  ignore_missing_property   = true
-  ignore_null_property      = true
-  schema_validation_enabled = false
-
-  depends_on = [time_sleep.wait_for_rbac]
-
-  lifecycle {
-    ignore_changes = [
-      body.properties.dataSourceInfo.objectType,
-      body.properties.dataSourceSetInfo.objectType,
-    ]
-  }
 }
