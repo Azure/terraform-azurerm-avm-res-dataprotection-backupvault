@@ -8,7 +8,14 @@ mock_provider "azapi" {
     }
   }
 }
-mock_provider "azurerm" {}
+mock_provider "azurerm" {
+  mock_data "azurerm_client_config" {
+    defaults = {
+      subscription_id = "00000000-0000-0000-0000-000000000000"
+      tenant_id       = "00000000-0000-0000-0000-000000000001"
+    }
+  }
+}
 mock_provider "modtm" {}
 mock_provider "random" {}
 mock_provider "time" {}

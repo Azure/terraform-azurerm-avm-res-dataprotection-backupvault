@@ -99,7 +99,7 @@ resource "azapi_resource" "backup_instance_disk" {
           dataStoreParametersList = [{
             objectType      = "AzureOperationalStoreParameters"
             dataStoreType   = "OperationalStore"
-            resourceGroupId = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${each.value.snapshot_resource_group_name}"
+            resourceGroupId = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${each.value.snapshot_resource_group_name}"
           }]
         }
       }
