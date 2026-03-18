@@ -4,7 +4,7 @@ resource "azapi_resource" "resource_guard" {
 
   location  = var.location
   name      = coalesce(var.resource_guard_name, "${var.name}-guard")
-  parent_id = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
+  parent_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
   type      = "Microsoft.DataProtection/resourceGuards@2025-09-01"
   body = {
     properties = {

@@ -1,5 +1,5 @@
 # Required AVM resources interfaces
-data "azapi_client_config" "current" {}
+data "azurerm_client_config" "current" {}
 
 data "azurerm_role_definition" "role_defs" {
   for_each = { for k, v in var.role_assignments : k => v if !strcontains(lower(v.role_definition_id_or_name), lower(local.role_definition_resource_substring)) }
@@ -10,7 +10,7 @@ data "azurerm_role_definition" "role_defs" {
 resource "azapi_resource" "backup_vault" {
   location  = var.location
   name      = var.name
-  parent_id = "/subscriptions/${data.azapi_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
+  parent_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
   type      = "Microsoft.DataProtection/backupVaults@2025-09-01"
   body = {
     properties = {
