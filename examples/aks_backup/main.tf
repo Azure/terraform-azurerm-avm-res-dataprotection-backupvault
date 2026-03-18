@@ -66,7 +66,7 @@ resource "azurerm_kubernetes_cluster" "example" {
     temporary_name_for_rotation = "tempnodepool"
     type                        = "VirtualMachineScaleSets"
     vm_size                     = "Standard_D4s_v3"
-    zones                       = ["2", "3"]
+    zones                       = ["1", "3"]
 
     upgrade_settings {
       max_surge                     = "33%"
@@ -89,7 +89,7 @@ resource "azurerm_storage_account" "example" {
   name                            = lower(replace("stgaks${substr(module.naming.resource_group.name_unique, -12, -1)}", "-", ""))
   resource_group_name             = azurerm_resource_group.example.name
   allow_nested_items_to_be_public = false
-  shared_access_key_enabled       = false
+  shared_access_key_enabled       = true
 }
 
 resource "azurerm_storage_container" "example" {
@@ -141,7 +141,7 @@ resource "azurerm_role_assignment" "extension_storage_access" {
 module "backup_vault" {
   source = "../../"
 
-  datastore_type      = "VaultStore"
+  datastore_type      = "OperationalStore"
   location            = azurerm_resource_group.example.location
   name                = "${module.naming.recovery_services_vault.name_unique}-vault"
   redundancy          = "LocallyRedundant"
@@ -259,29 +259,47 @@ resource "azapi_resource" "backup_instance" {
     properties = {
       friendlyName = "${module.naming.kubernetes_cluster.name_unique}-backup-instance"
       objectType   = "BackupInstance"
-      policyInfo = {
-        policyId = module.backup_vault.kubernetes_backup_policy_ids["aks"]
-      }
       dataSourceInfo = {
         datasourceType   = "Microsoft.ContainerService/managedClusters"
-        objectType       = "DatasourceInfo"
-        resourceId       = azurerm_kubernetes_cluster.example.id
+        objectType       = "Datasource"
+        resourceID       = azurerm_kubernetes_cluster.example.id
         resourceLocation = azurerm_resource_group.example.location
+        resourceName     = azurerm_kubernetes_cluster.example.name
+        resourceType     = "Microsoft.ContainerService/managedClusters"
+        resourceUri      = azurerm_kubernetes_cluster.example.id
       }
       dataSourceSetInfo = {
-        objectType = "DatasourceSetInfo"
-        resourceId = azurerm_kubernetes_cluster.example.id
+        datasourceType   = "Microsoft.ContainerService/managedClusters"
+        objectType       = "DatasourceSet"
+        resourceID       = azurerm_kubernetes_cluster.example.id
+        resourceLocation = azurerm_resource_group.example.location
+        resourceName     = azurerm_kubernetes_cluster.example.name
+        resourceType     = "Microsoft.ContainerService/managedClusters"
+        resourceUri      = azurerm_kubernetes_cluster.example.id
       }
-      datasourceParameters = {
-        objectType                    = "KubernetesClusterBackupDatasourceParameters"
-        clusterScopedResourcesEnabled = true
-        excludedNamespaces            = ["kube-system", "kube-public"]
-        excludedResourceTypes         = []
-        includedNamespaces            = ["default", "app-namespace"]
-        includedResourceTypes         = []
-        labelSelectors                = []
-        snapshotResourceGroupName     = azurerm_resource_group.snap.name
-        volumeSnapshotEnabled         = true
+      policyInfo = {
+        policyId = module.backup_vault.kubernetes_backup_policy_ids["aks"]
+        policyParameters = {
+          backupDatasourceParametersList = [
+            {
+              objectType                   = "KubernetesClusterBackupDatasourceParameters"
+              includeClusterScopeResources = true
+              snapshotVolumes              = true
+              excludedNamespaces           = ["kube-system", "kube-public", "kube-node-lease"]
+              excludedResourceTypes        = []
+              includedNamespaces           = []
+              includedResourceTypes        = []
+              labelSelectors               = []
+            }
+          ]
+          dataStoreParametersList = [
+            {
+              objectType      = "AzureOperationalStoreParameters"
+              dataStoreType   = "OperationalStore"
+              resourceGroupId = azurerm_resource_group.snap.id
+            }
+          ]
+        }
       }
       validationType = "ShallowValidation"
     }
