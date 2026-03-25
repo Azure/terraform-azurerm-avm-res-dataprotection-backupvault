@@ -1,11 +1,5 @@
 # Direct AKS/Kubernetes backup configuration variables
 
-variable "backup_vault_resource_type" {
-  type        = string
-  default     = "Microsoft.DataProtection/backupVaults@2025-09-01"
-  description = "The resource type for the backup vault including API version. Override this if you need to match a different casing for import scenarios, e.g. `Microsoft.DataProtection/BackupVaults@2025-09-01`."
-}
-
 #Unique Module Variables
 variable "datastore_type" {
   type        = string
@@ -261,6 +255,12 @@ DESCRIPTION
     ])
     error_message = "Kubernetes retention_rules.criteria does not support days_of_month or scheduled_backup_times in this module."
   }
+}
+
+variable "backup_vault_resource_type" {
+  type        = string
+  default     = "Microsoft.DataProtection/backupVaults@2025-09-01"
+  description = "The resource type for the backup vault including API version. Override this if you need to match a different casing for import scenarios, e.g. `Microsoft.DataProtection/BackupVaults@2025-09-01`."
 }
 
 variable "cross_region_restore_enabled" {
