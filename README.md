@@ -272,6 +272,14 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_backup_vault_resource_type"></a> [backup\_vault\_resource\_type](#input\_backup\_vault\_resource\_type)
+
+Description: The resource type for the backup vault including API version. Override this if you need to match a different casing for import scenarios, e.g. `Microsoft.DataProtection/BackupVaults@2025-09-01`.
+
+Type: `string`
+
+Default: `"Microsoft.DataProtection/backupVaults@2025-09-01"`
+
 ### <a name="input_cross_region_restore_enabled"></a> [cross\_region\_restore\_enabled](#input\_cross\_region\_restore\_enabled)
 
 Description: Whether to enable cross-region restore for the Backup Vault. Can only be enabled with GeoRedundant redundancy.
