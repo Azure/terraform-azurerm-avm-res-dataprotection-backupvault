@@ -11,7 +11,7 @@ resource "azapi_resource" "backup_vault" {
   location  = var.location
   name      = var.name
   parent_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
-  type      = "Microsoft.DataProtection/backupVaults@2025-09-01"
+  type      = var.backup_vault_resource_type
   body = {
     properties = {
       storageSettings = concat(
