@@ -426,7 +426,7 @@ Default: `[]`
 
 ### <a name="input_resource_guard_enabled"></a> [resource\_guard\_enabled](#input\_resource\_guard\_enabled)
 
-Description: Controls whether an Azure Data Protection Resource Guard is deployed to protect the backup vault from accidental or malicious operations.
+Description: Controls whether a Resource Guard is associated with the backup vault. When true and `resource_guard_resource_id` is null, a new Resource Guard is created in the same resource group. When true and `resource_guard_resource_id` is provided, the existing external guard is associated instead.
 
 Type: `bool`
 
@@ -434,7 +434,15 @@ Default: `false`
 
 ### <a name="input_resource_guard_name"></a> [resource\_guard\_name](#input\_resource\_guard\_name)
 
-Description: The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix.
+Description: The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix. Only used when creating a new resource guard (i.e., when `resource_guard_resource_id` is null).
+
+Type: `string`
+
+Default: `null`
+
+### <a name="input_resource_guard_resource_id"></a> [resource\_guard\_resource\_id](#input\_resource\_guard\_resource\_id)
+
+Description: The resource ID of an existing Resource Guard to associate with the backup vault. When provided (with `resource_guard_enabled = true`), no new guard is created — the existing one is used directly.
 
 Type: `string`
 
@@ -645,7 +653,7 @@ Description: Map of PostgreSQL Flexible backup policy IDs by policy key.
 
 ### <a name="output_resource_guard_id"></a> [resource\_guard\_id](#output\_resource\_guard\_id)
 
-Description: The ID of the Resource Guard (if enabled)
+Description: The ID of the Resource Guard (created or external)
 
 ### <a name="output_resource_guard_name"></a> [resource\_guard\_name](#output\_resource\_guard\_name)
 
