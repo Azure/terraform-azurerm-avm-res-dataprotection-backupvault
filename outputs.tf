@@ -131,8 +131,8 @@ output "postgresql_flexible_backup_policy_ids" {
 }
 
 output "resource_guard_id" {
-  description = "The ID of the Resource Guard (if enabled)"
-  value       = try(azapi_resource.resource_guard[0].id, null)
+  description = "The ID of the Resource Guard (created or external)"
+  value       = var.resource_guard_resource_id != null ? var.resource_guard_resource_id : try(azapi_resource.resource_guard[0].id, null)
 }
 
 output "resource_guard_name" {

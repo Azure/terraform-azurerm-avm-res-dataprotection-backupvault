@@ -1,6 +1,7 @@
 # Resource Guard for added protection of backup resources
+# Creates a new resource guard only when enabled and no external guard ID is provided
 resource "azapi_resource" "resource_guard" {
-  count = var.resource_guard_enabled ? 1 : 0
+  count = var.resource_guard_enabled && !var.resource_guard_use_external ? 1 : 0
 
   location  = var.location
   name      = coalesce(var.resource_guard_name, "${var.name}-guard")
@@ -35,7 +36,7 @@ resource "azapi_resource" "vault_resource_guard_association" {
   type      = "Microsoft.DataProtection/backupVaults/backupResourceGuardProxies@2025-09-01"
   body = {
     properties = {
-      resourceGuardResourceId = azapi_resource.resource_guard[0].id
+      resourceGuardResourceId = var.resource_guard_use_external ? var.resource_guard_resource_id : azapi_resource.resource_guard[0].id
     }
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
