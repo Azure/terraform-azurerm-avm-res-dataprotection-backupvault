@@ -59,7 +59,7 @@ When set, configures monitoringSettings.azureMonitorAlertSettings.alertsForAllJo
 DESCRIPTION
 
   validation {
-    condition     = var.alerts_for_all_job_failures == null || contains(["Enabled", "Disabled"], var.alerts_for_all_job_failures)
+    condition     = var.alerts_for_all_job_failures == null || try(contains(["Enabled", "Disabled"], var.alerts_for_all_job_failures), false)
     error_message = "alerts_for_all_job_failures must be null or one of: Enabled, Disabled."
   }
 }
@@ -283,7 +283,7 @@ Valid options: "Enabled", "Disabled", "PermanentlyDisabled". Defaults to null (n
 DESCRIPTION
 
   validation {
-    condition     = var.cross_subscription_restore_state == null || contains(["Enabled", "Disabled", "PermanentlyDisabled"], var.cross_subscription_restore_state)
+    condition     = var.cross_subscription_restore_state == null || try(contains(["Enabled", "Disabled", "PermanentlyDisabled"], var.cross_subscription_restore_state), false)
     error_message = "cross_subscription_restore_state must be null or one of: Enabled, Disabled, PermanentlyDisabled."
   }
 }

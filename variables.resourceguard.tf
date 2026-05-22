@@ -1,13 +1,13 @@
 variable "resource_guard_enabled" {
   type        = bool
   default     = false
-  description = "Controls whether an Azure Data Protection Resource Guard is deployed to protect the backup vault from accidental or malicious operations."
+  description = "Controls whether a Resource Guard association is created for the backup vault. When true, set `resource_guard_use_external = true` and provide `resource_guard_resource_id` to use an existing guard, or leave them unset to create a new guard in the same resource group."
 }
 
 variable "resource_guard_name" {
   type        = string
   default     = null
-  description = "The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix."
+  description = "The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix. Only used when creating a new resource guard."
 
   validation {
     condition = (
@@ -19,6 +19,26 @@ variable "resource_guard_name" {
     )
     error_message = "If provided, resource_guard_name must be between 3 and 63 characters long."
   }
+}
+
+variable "resource_guard_resource_id" {
+  type        = string
+  default     = null
+  description = "The resource ID of an existing Resource Guard to associate with the backup vault. Must be set when `resource_guard_use_external = true`."
+
+  validation {
+    condition = (
+      var.resource_guard_resource_id == null ||
+      can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.DataProtection/resourceGuards/[^/]+$", var.resource_guard_resource_id))
+    )
+    error_message = "If provided, resource_guard_resource_id must be a valid Azure resource ID for a Microsoft.DataProtection/resourceGuards resource."
+  }
+}
+
+variable "resource_guard_use_external" {
+  type        = bool
+  default     = false
+  description = "When true, uses an existing external Resource Guard specified by `resource_guard_resource_id` instead of creating a new one. Requires `resource_guard_enabled = true`."
 }
 
 variable "vault_critical_operation_exclusion_list" {

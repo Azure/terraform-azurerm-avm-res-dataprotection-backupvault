@@ -141,3 +141,78 @@ run "test_invalid_datastore_type" {
     var.datastore_type
   ]
 }
+
+# Test 6: Null values for alerts_for_all_job_failures and cross_subscription_restore_state are accepted (Issue #68)
+run "test_null_validation_no_failure" {
+  command = plan
+
+  variables {
+    name                           = "test-vault-null-validations"
+    location                       = "eastus"
+    resource_group_name            = "rg-test"
+    datastore_type                 = "VaultStore"
+    redundancy                     = "LocallyRedundant"
+    alerts_for_all_job_failures    = null
+    cross_subscription_restore_state = null
+  }
+
+  assert {
+    condition     = azapi_resource.backup_vault.name == "test-vault-null-validations"
+    error_message = "Vault should be created successfully with null validation values."
+  }
+}
+
+# Test 7: Valid non-null values for alerts_for_all_job_failures
+run "test_alerts_enabled_value" {
+  command = plan
+
+  variables {
+    name                        = "test-vault-alerts-enabled"
+    location                    = "eastus"
+    resource_group_name         = "rg-test"
+    datastore_type              = "VaultStore"
+    redundancy                  = "LocallyRedundant"
+    alerts_for_all_job_failures = "Enabled"
+  }
+
+  assert {
+    condition     = azapi_resource.backup_vault.name == "test-vault-alerts-enabled"
+    error_message = "Vault should be created with alerts_for_all_job_failures set to Enabled."
+  }
+}
+
+# Test 8: Invalid alerts_for_all_job_failures value is rejected
+run "test_invalid_alerts_value" {
+  command = plan
+
+  variables {
+    name                        = "test-vault-invalid-alerts"
+    location                    = "eastus"
+    resource_group_name         = "rg-test"
+    datastore_type              = "VaultStore"
+    redundancy                  = "LocallyRedundant"
+    alerts_for_all_job_failures = "InvalidValue"
+  }
+
+  expect_failures = [
+    var.alerts_for_all_job_failures
+  ]
+}
+
+# Test 9: Invalid resource guard ID is rejected (Issue #69)
+run "test_invalid_resource_guard_id" {
+  command = plan
+
+  variables {
+    name                       = "test-vault-invalid-guard"
+    location                   = "eastus"
+    resource_group_name        = "rg-test"
+    datastore_type             = "VaultStore"
+    redundancy                 = "LocallyRedundant"
+    resource_guard_resource_id = "not-a-valid-resource-id"
+  }
+
+  expect_failures = [
+    var.resource_guard_resource_id
+  ]
+}
