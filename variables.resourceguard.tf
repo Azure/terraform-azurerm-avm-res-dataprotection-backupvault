@@ -1,13 +1,13 @@
 variable "resource_guard_enabled" {
   type        = bool
   default     = false
-  description = "Controls whether a Resource Guard association is created for the backup vault. When true, set `resource_guard_use_external = true` and provide `resource_guard_resource_id` to use an existing guard, or leave them unset to create a new guard in the same resource group."
+  description = "Controls whether a Resource Guard is associated with the backup vault. When true and `resource_guard_resource_id` is null, a new Resource Guard is created in the same resource group. When true and `resource_guard_resource_id` is provided, the existing external guard is associated instead."
 }
 
 variable "resource_guard_name" {
   type        = string
   default     = null
-  description = "The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix. Only used when creating a new resource guard."
+  description = "The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix. Only used when creating a new resource guard (i.e., when `resource_guard_resource_id` is null)."
 
   validation {
     condition = (
@@ -24,7 +24,7 @@ variable "resource_guard_name" {
 variable "resource_guard_resource_id" {
   type        = string
   default     = null
-  description = "The resource ID of an existing Resource Guard to associate with the backup vault. Must be set when `resource_guard_use_external = true`."
+  description = "The resource ID of an existing Resource Guard to associate with the backup vault. When provided (with `resource_guard_enabled = true`), no new guard is created — the existing one is used directly."
 
   validation {
     condition = (
@@ -33,12 +33,6 @@ variable "resource_guard_resource_id" {
     )
     error_message = "If provided, resource_guard_resource_id must be a valid Azure resource ID for a Microsoft.DataProtection/resourceGuards resource."
   }
-}
-
-variable "resource_guard_use_external" {
-  type        = bool
-  default     = false
-  description = "When true, uses an existing external Resource Guard specified by `resource_guard_resource_id` instead of creating a new one. Requires `resource_guard_enabled = true`."
 }
 
 variable "vault_critical_operation_exclusion_list" {

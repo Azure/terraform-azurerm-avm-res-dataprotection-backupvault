@@ -426,7 +426,7 @@ Default: `[]`
 
 ### <a name="input_resource_guard_enabled"></a> [resource\_guard\_enabled](#input\_resource\_guard\_enabled)
 
-Description: Controls whether a Resource Guard association is created for the backup vault. When true, set `resource_guard_use_external = true` and provide `resource_guard_resource_id` to use an existing guard, or leave them unset to create a new guard in the same resource group.
+Description: Controls whether a Resource Guard is associated with the backup vault. When true and `resource_guard_resource_id` is null, a new Resource Guard is created in the same resource group. When true and `resource_guard_resource_id` is provided, the existing external guard is associated instead.
 
 Type: `bool`
 
@@ -434,7 +434,7 @@ Default: `false`
 
 ### <a name="input_resource_guard_name"></a> [resource\_guard\_name](#input\_resource\_guard\_name)
 
-Description: The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix. Only used when creating a new resource guard.
+Description: The name of the Resource Guard. If not specified, will use the backup vault name with '-guard' suffix. Only used when creating a new resource guard (i.e., when `resource_guard_resource_id` is null).
 
 Type: `string`
 
@@ -442,19 +442,11 @@ Default: `null`
 
 ### <a name="input_resource_guard_resource_id"></a> [resource\_guard\_resource\_id](#input\_resource\_guard\_resource\_id)
 
-Description: The resource ID of an existing Resource Guard to associate with the backup vault. Must be set when `resource_guard_use_external = true`.
+Description: The resource ID of an existing Resource Guard to associate with the backup vault. When provided (with `resource_guard_enabled = true`), no new guard is created — the existing one is used directly.
 
 Type: `string`
 
 Default: `null`
-
-### <a name="input_resource_guard_use_external"></a> [resource\_guard\_use\_external](#input\_resource\_guard\_use\_external)
-
-Description: When true, uses an existing external Resource Guard specified by `resource_guard_resource_id` instead of creating a new one. Requires `resource_guard_enabled = true`.
-
-Type: `bool`
-
-Default: `false`
 
 ### <a name="input_retention_duration_in_days"></a> [retention\_duration\_in\_days](#input\_retention\_duration\_in\_days)
 
