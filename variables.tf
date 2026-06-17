@@ -1,5 +1,6 @@
 # Direct AKS/Kubernetes backup configuration variables
 
+
 #Unique Module Variables
 variable "datastore_type" {
   type        = string

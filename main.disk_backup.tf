@@ -142,4 +142,3 @@ resource "time_sleep" "wait_for_backup_instance_disk" {
 
   depends_on = [azapi_resource.backup_instance_disk]
 }
-
