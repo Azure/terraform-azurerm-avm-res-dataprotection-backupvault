@@ -25,7 +25,7 @@ provider "azurerm" {
 # Randomly select an Azure region for the resource group
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.7.0"
+  version = "0.12.0"
 }
 
 resource "random_integer" "region_index" {
@@ -36,7 +36,7 @@ resource "random_integer" "region_index" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.3.0"
+  version = "0.4.3"
 
   suffix = ["adls"]
 }

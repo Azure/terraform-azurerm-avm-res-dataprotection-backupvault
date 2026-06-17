@@ -23,7 +23,7 @@ provider "azurerm" {
 
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.7.0"
+  version = "0.12.0"
 }
 
 # Random region selection
@@ -46,7 +46,7 @@ resource "random_password" "postgres_password" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.3.0"
+  version = "0.4.3"
 
   suffix = ["postgres"]
 }

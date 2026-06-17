@@ -65,6 +65,7 @@ resource "azapi_resource" "backup_vault" {
       identity_ids = length(try(var.managed_identities.user_assigned_resource_ids, [])) > 0 ? var.managed_identities.user_assigned_resource_ids : null
     }
   }
+
   timeouts {
     create = var.timeout_create
     delete = var.timeout_delete
