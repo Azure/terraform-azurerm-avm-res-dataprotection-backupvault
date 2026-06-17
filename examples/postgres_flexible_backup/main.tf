@@ -46,7 +46,7 @@ resource "random_password" "postgres_password" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.3.0"
+  version = "0.4.3"
 
   suffix = ["postgres"]
 }
