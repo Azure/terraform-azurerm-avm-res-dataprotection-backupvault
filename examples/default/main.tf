@@ -22,7 +22,7 @@ provider "azapi" {}
 
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.3.0"
+  version = "0.4.3"
 
   suffix = ["test"]
 }
