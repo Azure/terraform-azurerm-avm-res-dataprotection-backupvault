@@ -15,12 +15,13 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = ">= 4.0, < 6.0"
     }
   }
 }
 
 provider "azurerm" {
+  resource_providers_to_register = ["Microsoft.Compute", "Microsoft.DataProtection", "Microsoft.OperationalInsights"]
   features {
     resource_group {
       prevent_deletion_if_contains_resources = false
@@ -222,7 +223,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.4)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 4.0, < 6.0)
 
 ## Resources
 

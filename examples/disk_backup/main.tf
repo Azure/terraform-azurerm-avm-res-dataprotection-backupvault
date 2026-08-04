@@ -8,12 +8,13 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 5.0"
+      version = ">= 4.0, < 6.0"
     }
   }
 }
 
 provider "azurerm" {
+  resource_providers_to_register = ["Microsoft.Compute", "Microsoft.DataProtection", "Microsoft.OperationalInsights"]
   features {
     resource_group {
       prevent_deletion_if_contains_resources = false
