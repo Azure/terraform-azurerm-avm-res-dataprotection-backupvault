@@ -147,12 +147,12 @@ run "test_null_validation_no_failure" {
   command = plan
 
   variables {
-    name                           = "test-vault-null-validations"
-    location                       = "eastus"
-    resource_group_name            = "rg-test"
-    datastore_type                 = "VaultStore"
-    redundancy                     = "LocallyRedundant"
-    alerts_for_all_job_failures    = null
+    name                             = "test-vault-null-validations"
+    location                         = "eastus"
+    resource_group_name              = "rg-test"
+    datastore_type                   = "VaultStore"
+    redundancy                       = "LocallyRedundant"
+    alerts_for_all_job_failures      = null
     cross_subscription_restore_state = null
   }
 
