@@ -47,7 +47,7 @@ resource "azurerm_key_vault" "kv" {
   tenant_id                   = data.azurerm_client_config.current.tenant_id
   enabled_for_disk_encryption = true
   purge_protection_enabled    = true
-  rbac_authorization_enabled   = false
+  rbac_authorization_enabled  = false
 }
 
 # Grant current user permissions to manage the key
