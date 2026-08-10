@@ -7,6 +7,7 @@ provider "registry.terraform.io/azure/azapi" {
   hashes = [
     "h1:N7fwvwD7BAPC1VZMONfI8Dy+M80WTsQfC0Dk0ktvZm8=",
     "h1:SfbC7Fp2gMGXOzZlPHcirTKDNhKjXYjymMtD/PGpD68=",
+    "h1:o1rYhfIES8PgHLPeIcNl1a2xIne7T13W/Ks3dy4eLf0=",
     "zh:05ae9abf23abf003229e9e04734fce2b881974b0df4313083a890d9f67b1fc35",
     "zh:1dc85011f0dc8480d34d4fab9fe90de56e171d99b8b19d7b65b0f3ed2af20376",
     "zh:21f84feed46eba054575e5866dfef2e1073b7fc129d789ff16a1fc53802bdcd9",
@@ -27,6 +28,7 @@ provider "registry.terraform.io/azure/modtm" {
   constraints = "~> 0.3"
   hashes = [
     "h1:AZf16AqJYD0dj9TXCMim1pJlaSAY0qZOAXV5CJ02wR8=",
+    "h1:c9NCKHh7f3D8QSjy56z+HIhhQdbR9AhQkRuqGcf/Aq4=",
     "h1:hn9exdW9Le7aLlFFAfMBqhN8xPufO85Ki9JsHMupwzw=",
     "zh:077eeaff6666bd1ee28b5c28c6613ddf162beb7a0230b84a2fe1d6d943174f8e",
     "zh:2b301bdd7031daa0afac77596fe662c359bb2dd96b681cd70e916db8637d5006",
@@ -44,23 +46,24 @@ provider "registry.terraform.io/azure/modtm" {
 }
 
 provider "registry.terraform.io/hashicorp/azurerm" {
-  version     = "4.81.0"
-  constraints = "~> 4.0, ~> 4.2"
+  version     = "5.0.1"
+  constraints = ">= 4.0.0, >= 4.2.0, < 6.0.0"
   hashes = [
-    "h1:4BEgtU/crlkbMduT7tm8Sp3+C+1RBfrpUIlTBM/wtMc=",
-    "h1:olVprUWhmFTARlydw/r7VIx4fata2gy3zsAWfPGRrhg=",
-    "zh:0732e7b74264ddfa2b90ba69d01c283d3cbae9f72ed3e506c6ac92529fed7fd3",
-    "zh:12afb524e232fe4e3d6161927724af5dfa4831d71edd9c174917ca9b7377bfae",
-    "zh:169d619ae202c4145e02fb706fb7c3679445ab3e3ff722edbf89597517a8c92e",
-    "zh:6beb95a3ef2f2d9c76abaa48e5450e90686a3fb6a47f1cb0ff7c5e94b6960151",
-    "zh:705e075fb5ffc4bf66fd7cbabf1a65007a41621e80030a2c158a4c83b6046216",
+    "h1:5RifH5nesRTnWPZtYbNoyLMVEjb9566yhWEy0MaoRFM=",
+    "h1:V69grO5xSjPMLwrPA/LDoLvsRGzuSwkka7zFbRXuEhc=",
+    "h1:ysLCaA2S05kmrRekwXLDfJMU6foRK1LJ/Xi6VJc4q+o=",
+    "zh:2de9caf937237bf5ee747b803b15a08276ceb275f611f6444fca3d82fc75afec",
+    "zh:3b1915d0c391a8e0bdce66bf603e30fff230f67667161de9c143ca8ce37539a1",
+    "zh:3c45e7833218734ca5ed321e799a8d8abed6801e27397eb106d0f55dfb1eaa87",
+    "zh:3dd2db3ddc9e26108274c567bafe474a4df930ec719074cd545fe39dde6ac206",
+    "zh:5d82dd9533b0b153894fb2432a36d3c3505ab27a879338c62e70bda15ba97f8c",
+    "zh:78562c75f27b75e4a5f854dc290b7c1c262ebdf2354ca16a110b841ca697bf90",
     "zh:78d5eefdd9e494defcb3c68d282b8f96630502cac21d1ea161f53cfe9bb483b3",
-    "zh:79a8d17fefe647040fcb9ee8821a4f09f395427c4fd49493489b9a93a9a1038e",
-    "zh:8cc3f900b3774c0ae37ae42365c4579a199cf9e5edf88e476fdf5ab1048f84ea",
-    "zh:dec373b9390fa95e257291acd018ed65a7d512b428645d35e22cdbe8b245a08b",
-    "zh:e60f1e9fb45df6defade2855ed6e68547409ea75d30655c556adb0c08579749b",
-    "zh:f901d12ec82f3f8b5880a27b5cbcd7bd0d97e60c9367a2d7ed82fdd1157b39ff",
-    "zh:facf68ea5bf0f2b8ba720e7fba5f86492e1d4c591100460bb91c3f79f391f4b6",
+    "zh:7b73ea687a28ed51823d716f46cafd4236ca50ca172558ec5aa18c132c206620",
+    "zh:95e572793efef127b773c35e1581e462e97fb38cf696bc6caf53c1231e21a36c",
+    "zh:c1a95c6917689be45e1a6408f8a05c8a4a7a628427b795931fabea4e43e95742",
+    "zh:c7281424d802a12ebd41297c68f3008602ac3c2ad98fc25937654014902b37eb",
+    "zh:dd98c2c8eb092f29cba261065bbaa7e917e8336f8fc4e0ea25e642f7b90c962e",
   ]
 }
 
@@ -69,6 +72,7 @@ provider "registry.terraform.io/hashicorp/random" {
   constraints = ">= 3.3.2, >= 3.5.0, < 4.0.0"
   hashes = [
     "h1:UlBuNVuCGJ39tTv2c5gz2NRZnQbXfbIWbTzWcth5o74=",
+    "h1:lVDv+0AjDjrLfpmaJbWqUmIw/k3/AHXLc3N4m55SNdo=",
     "h1:q/uaUTBdKgAmZESrwsoeDQff9uUA/cI/N5ZKNgVwa9c=",
     "zh:161ad0bd9a75768c82f53fb6e7172a9d8be2d4889b012645a34795031aaf1bf1",
     "zh:19dc9a5b17729725ccfc4f45b0500af0ee5bc6b6b160c7adb8f2bf617d2c80ea",
@@ -92,6 +96,7 @@ provider "registry.terraform.io/hashicorp/time" {
   hashes = [
     "h1:+nUGGWxp4gQCusc6Sa+FLSQfHUPWh7YaQV6qrWV9exo=",
     "h1:4EThC3ocCFiFPMZQSUvSGSxoJqBcGWxMcFYmL67uS7Y=",
+    "h1:Gra0WVbFgIWSbXrZNd+E4zlXsMooCSKeUTrkxqT7//c=",
     "zh:12abfd6b800e4d7fa6db7310dec8ffd440b31993861ef188c7ed5260b3073937",
     "zh:23005521e800bb19e1597bf755c5f70d675d30b685d4255001ed5fa47d9df3f1",
     "zh:2fea249b582ae97cd1cc10385187ea50993bb47c28cc5df0305e57ceaabf0a10",

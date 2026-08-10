@@ -15,7 +15,7 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = ">= 4.0, < 6.0"
     }
     time = {
       source  = "hashicorp/time"
@@ -25,6 +25,7 @@ terraform {
 }
 
 provider "azurerm" {
+  resource_providers_to_register = ["Microsoft.DataProtection", "Microsoft.KeyVault"]
   features {}
 }
 
@@ -53,6 +54,7 @@ resource "azurerm_key_vault" "kv" {
   tenant_id                   = data.azurerm_client_config.current.tenant_id
   enabled_for_disk_encryption = true
   purge_protection_enabled    = true
+  rbac_authorization_enabled   = false
 }
 
 # Grant current user permissions to manage the key
@@ -145,7 +147,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.4)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 4.0, < 6.0)
 
 - <a name="requirement_time"></a> [time](#requirement\_time) (~> 0.11)
 
