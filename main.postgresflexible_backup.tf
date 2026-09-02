@@ -131,7 +131,6 @@ resource "azapi_resource" "backup_instance_postgresql_flexible_server" {
       policyInfo = {
         policyId = azapi_resource.backup_policy_postgresql_flexible_server[each.value.backup_policy_key].id
       }
-      validationType = "ShallowValidation"
     }
   }
   create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null

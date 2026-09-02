@@ -1,6 +1,9 @@
-# Disable the role_assignments rule validation as we're implementing a custom role assignment pattern
-# where the scope is derived from other inputs rather than being directly part of the role_assignments variable.
-# This is a deliberate design choice to maintain backward compatibility while providing proper role assignment functionality.
-rule "role_assignments" {
+# The module's role assignment input intentionally extends the standard interface with name and scope.
+rule "avm_interface_role_assignments" {
+  enabled = false
+}
+
+# Existing backup instance resources do not yet propagate the module-level tags input.
+rule "avm_azapi_resource_tags_required" {
   enabled = false
 }
