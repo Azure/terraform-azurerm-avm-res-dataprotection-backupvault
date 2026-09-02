@@ -11,7 +11,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = ">= 4.0, < 6.0"
     }
     random = {
       source  = "hashicorp/random"
@@ -21,6 +21,7 @@ terraform {
 }
 
 provider "azurerm" {
+  resource_providers_to_register = ["Microsoft.DataProtection", "Microsoft.Storage"]
   features {}
   storage_use_azuread = true
 }
@@ -155,7 +156,7 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.7.0)
 
-- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
+- <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (>= 4.0, < 6.0)
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0, < 4.0)
 

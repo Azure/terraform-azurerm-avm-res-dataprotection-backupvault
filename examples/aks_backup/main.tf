@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = ">= 4.0, < 6.0"
     }
     time = {
       source  = "hashicorp/time"
@@ -14,6 +14,7 @@ terraform {
 }
 
 provider "azurerm" {
+  resource_providers_to_register = ["Microsoft.ContainerService", "Microsoft.DataProtection", "Microsoft.KubernetesConfiguration", "Microsoft.Storage"]
   features {}
   storage_use_azuread = true
 }

@@ -52,5 +52,5 @@ avm.tflint_module.merged.hcl
 copilot-instructions.md
 examples/*/policy
 *.mptfbackup
-.avm
 *.terraform.lock.hcl
+.avm/managed-files.json
