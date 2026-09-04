@@ -20,7 +20,6 @@ terraform {
   }
 }
 
-
 provider "azurerm" {
   resource_providers_to_register = ["Microsoft.DataProtection"]
   features {}

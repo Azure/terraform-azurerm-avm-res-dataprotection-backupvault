@@ -12,13 +12,9 @@ resource "azapi_resource" "resource_guard" {
       vaultCriticalOperationExclusionList = var.vault_critical_operation_exclusion_list
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
   tags                      = var.tags
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create
@@ -39,12 +35,8 @@ resource "azapi_resource" "vault_resource_guard_association" {
       resourceGuardResourceId = var.resource_guard_resource_id != null ? var.resource_guard_resource_id : azapi_resource.resource_guard[0].id
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   depends_on = [
     azapi_resource.resource_guard,

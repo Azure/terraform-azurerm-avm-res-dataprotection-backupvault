@@ -90,14 +90,10 @@ resource "azapi_resource" "backup_policy_postgresql" {
       )
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   timeouts {
     create = var.timeout_create
@@ -138,15 +134,11 @@ resource "azapi_resource" "backup_instance_postgresql" {
       validationType = "ShallowValidation"
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   delete_query_parameters   = var.permanent_delete_on_destroy ? { "permanent" = ["true"] } : null
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   lifecycle {
     ignore_changes = [

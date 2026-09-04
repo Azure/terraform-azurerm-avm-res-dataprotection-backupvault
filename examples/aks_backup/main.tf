@@ -69,6 +69,7 @@ resource "azurerm_kubernetes_cluster" "example" {
       node_soak_duration_in_minutes = 15
     }
   }
+
   identity {
     type = "SystemAssigned"
   }
