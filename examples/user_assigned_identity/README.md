@@ -81,7 +81,6 @@ module "backup_vault_both_identities" {
     user_assigned_resource_ids = [azurerm_user_assigned_identity.backup_vault_identity.id]
   }
 }
-
 ```
 
 <!-- markdownlint-disable MD033 -->

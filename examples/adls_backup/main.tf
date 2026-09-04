@@ -148,4 +148,3 @@ resource "azurerm_role_assignment" "storage_account_backup_contributor" {
   description          = "Backup Contributor for ADLS Gen2 Storage"
   role_definition_name = "Storage Account Backup Contributor"
 }
-

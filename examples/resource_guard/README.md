@@ -35,7 +35,6 @@ resource "azurerm_role_assignment" "backup_mua_operator" {
   role_definition_name = "Backup MUA Operator"
 }
 
-
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
@@ -84,8 +83,6 @@ module "backup_vault" {
     "Update"  # Allow updates without Resource Guard protection
   ]
 }
-
-
 ```
 
 <!-- markdownlint-disable MD033 -->

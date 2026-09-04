@@ -49,13 +49,9 @@ resource "azapi_resource" "backup_vault" {
       }
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
   tags                      = var.tags
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   dynamic "identity" {
     for_each = (var.managed_identities.system_assigned || length(try(var.managed_identities.user_assigned_resource_ids, [])) > 0) ? [1] : []
@@ -86,12 +82,8 @@ resource "azapi_resource" "lock" {
       notes = var.lock.kind == "CanNotDelete" ? "Cannot delete the resource or its child resources." : "Cannot delete or modify the resource or its child resources."
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 }
 
 resource "azapi_resource" "role_assignments" {
@@ -111,12 +103,8 @@ resource "azapi_resource" "role_assignments" {
       delegatedManagedIdentityResourceId = each.value.delegated_managed_identity_resource_id
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   lifecycle {
     ignore_changes = [
@@ -145,14 +133,10 @@ resource "azapi_resource" "diagnostic_settings" {
       metrics = [for m in each.value.metric_categories : { category = m, enabled = true }]
     }
   }
-  create_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
-  delete_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   ignore_casing             = true
   ignore_missing_property   = true
   ignore_null_property      = true
-  read_headers              = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
   schema_validation_enabled = false
-  update_headers            = var.enable_telemetry ? { "User-Agent" = local.avm_azapi_header } : null
 
   lifecycle {
     ignore_changes = [

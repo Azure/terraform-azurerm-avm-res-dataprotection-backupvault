@@ -84,6 +84,7 @@ resource "azurerm_postgresql_flexible_server" "example" {
     mode                      = "ZoneRedundant"
     standby_availability_zone = "2"
   }
+
   # Define a custom maintenance window
   maintenance_window {
     day_of_week  = "4" # Thursday
