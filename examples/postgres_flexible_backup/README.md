@@ -32,6 +32,8 @@ provider "azurerm" {
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "0.12.0"
+
+  enable_telemetry = false
 }
 
 # Random region selection
@@ -127,7 +129,7 @@ module "backup_vault" {
       time_zone = "UTC"
     }
   }
-  enable_telemetry = true
+  enable_telemetry = false
   managed_identities = {
     system_assigned = true
   }

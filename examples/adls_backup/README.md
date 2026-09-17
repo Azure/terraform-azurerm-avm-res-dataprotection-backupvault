@@ -34,6 +34,8 @@ provider "azurerm" {
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "0.12.0"
+
+  enable_telemetry = false
 }
 
 resource "random_integer" "region_index" {
@@ -139,7 +141,7 @@ module "backup_vault" {
       ]
     }
   }
-  enable_telemetry = true
+  enable_telemetry = false
   lock             = null
   managed_identities = {
     system_assigned = true

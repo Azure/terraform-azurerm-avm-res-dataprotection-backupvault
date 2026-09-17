@@ -63,6 +63,7 @@ module "backup_vault" {
   name                = module.naming.recovery_services_vault.name_unique
   redundancy          = "GeoRedundant"
   resource_group_name = azurerm_resource_group.example.name
+  enable_telemetry    = false
   # Enable system-assigned managed identity
   managed_identities = {
     system_assigned = true

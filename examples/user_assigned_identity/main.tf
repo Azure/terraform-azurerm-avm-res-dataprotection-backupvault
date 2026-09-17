@@ -49,7 +49,7 @@ module "backup_vault_user_assigned_only" {
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.rg.name
   diagnostic_settings = {}
-  enable_telemetry    = true
+  enable_telemetry    = false
   # User-Assigned Identity Only
   managed_identities = {
     system_assigned            = false
@@ -67,7 +67,7 @@ module "backup_vault_both_identities" {
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.rg.name
   diagnostic_settings = {}
-  enable_telemetry    = true
+  enable_telemetry    = false
   # Both System-Assigned and User-Assigned Identity
   managed_identities = {
     system_assigned            = true
