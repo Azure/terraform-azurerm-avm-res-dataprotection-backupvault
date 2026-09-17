@@ -91,7 +91,7 @@ module "backup_vault" {
   redundancy          = "GeoRedundant"
   resource_group_name = azurerm_resource_group.rg.name
   diagnostic_settings = {}
-  enable_telemetry    = true
+  enable_telemetry    = false
   managed_identities = {
     system_assigned = true
   }

@@ -186,7 +186,7 @@ module "backup_vault" {
       ]
     }
   }
-  enable_telemetry = true
+  enable_telemetry = false
   managed_identities = {
     system_assigned = true
   }

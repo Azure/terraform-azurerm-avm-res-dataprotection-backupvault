@@ -44,5 +44,5 @@ module "backup_vault" {
   redundancy          = "GeoRedundant"
   resource_group_name = azurerm_resource_group.example.name
   diagnostic_settings = {}
-  enable_telemetry    = true # Enable telemetry (optional)
+  enable_telemetry    = false # Enable telemetry (optional)
 }
