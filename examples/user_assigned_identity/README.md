@@ -56,7 +56,7 @@ module "backup_vault_user_assigned_only" {
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.rg.name
   diagnostic_settings = {}
-  enable_telemetry    = false
+  enable_telemetry    = var.enable_telemetry
   # User-Assigned Identity Only
   managed_identities = {
     system_assigned            = false
@@ -74,7 +74,7 @@ module "backup_vault_both_identities" {
   redundancy          = "LocallyRedundant"
   resource_group_name = azurerm_resource_group.rg.name
   diagnostic_settings = {}
-  enable_telemetry    = false
+  enable_telemetry    = var.enable_telemetry
   # Both System-Assigned and User-Assigned Identity
   managed_identities = {
     system_assigned            = true
@@ -108,7 +108,17 @@ No required inputs.
 
 ## Optional Inputs
 
-No optional inputs.
+The following input variables are optional (have default values):
+
+### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
+
+Description: This variable controls whether or not telemetry is enabled for the module.  
+For more information see <https://aka.ms/avm/telemetryinfo>.  
+If it is set to false, then no telemetry will be collected.
+
+Type: `bool`
+
+Default: `false`
 
 ## Outputs
 
