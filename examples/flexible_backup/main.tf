@@ -174,7 +174,7 @@ module "backup_vault" {
       workspace_resource_id = azurerm_log_analytics_workspace.example.id
     }
   }
-  enable_telemetry = false
+  enable_telemetry = var.enable_telemetry
   immutability     = "Disabled"
   managed_identities = {
     system_assigned = true
