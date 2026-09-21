@@ -31,7 +31,7 @@ provider "azapi" {}
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.4.3"
+  version = "0.4.4"
 
   prefix = ["avm"]
   suffix = ["demo"]
