@@ -31,7 +31,7 @@ resource "azurerm_role_assignment" "backup_mua_operator" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.4.3"
+  version = "0.4.4"
 
   suffix = ["resourceguard"]
 }
