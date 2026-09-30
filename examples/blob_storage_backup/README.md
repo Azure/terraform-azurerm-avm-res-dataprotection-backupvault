@@ -42,7 +42,7 @@ resource "random_integer" "region_index" {
 # Naming module
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.4.3"
+  version = "0.4.4"
 
   suffix = ["blob"]
 }
@@ -209,7 +209,7 @@ Version:
 
 Source: Azure/naming/azurerm
 
-Version: 0.4.3
+Version: 0.4.4
 
 ### <a name="module_regions"></a> [regions](#module\_regions)
 
