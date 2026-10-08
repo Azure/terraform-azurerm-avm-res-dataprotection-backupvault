@@ -104,7 +104,6 @@ resource "azapi_resource" "backup_policy_kubernetes_cluster" {
 resource "azapi_resource" "backup_instance_kubernetes_cluster" {
   for_each = local.kubernetes_instances
 
-  location  = var.location
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"

@@ -71,7 +71,6 @@ resource "azapi_resource" "backup_policy_disk" {
 resource "azapi_resource" "backup_instance_disk" {
   for_each = local.disk_instances
 
-  location  = var.location
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
