@@ -106,7 +106,6 @@ resource "azapi_resource" "backup_policy_postgresql_flexible_server" {
 resource "azapi_resource" "backup_instance_postgresql_flexible_server" {
   for_each = local.postgresql_flexible_instances
 
-  location  = var.location
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
