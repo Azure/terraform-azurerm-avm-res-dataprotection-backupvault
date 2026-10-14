@@ -58,6 +58,10 @@ resource "azurerm_kubernetes_cluster" "example" {
   dns_prefix          = "aks${substr(module.naming.kubernetes_cluster.name_unique, -6, -1)}"
   sku_tier            = "Standard"
 
+  node_provisioning_profile {
+    mode = "Manual"
+  }
+
   default_node_pool {
     name                        = "default"
     auto_scaling_enabled        = true

@@ -120,7 +120,6 @@ resource "azapi_resource" "backup_policy_blob_storage" {
 resource "azapi_resource" "backup_instance_blob_storage" {
   for_each = local.blob_instances
 
-  location  = var.location
   name      = each.value.name
   parent_id = azapi_resource.backup_vault.id
   type      = "Microsoft.DataProtection/backupVaults/backupInstances@2025-09-01"
