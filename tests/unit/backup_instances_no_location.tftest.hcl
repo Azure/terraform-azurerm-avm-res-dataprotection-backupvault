@@ -1,4 +1,10 @@
-mock_provider "azapi" {}
+mock_provider "azapi" {
+  mock_data "azapi_client_config" {
+    defaults = {
+      subscription_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000"
+    }
+  }
+}
 mock_provider "azurerm" {
   mock_data "azurerm_client_config" {
     defaults = {
@@ -6,8 +12,6 @@ mock_provider "azurerm" {
     }
   }
 }
-mock_provider "modtm" {}
-mock_provider "random" {}
 mock_provider "time" {}
 
 run "kubernetes_backup_instance_omits_top_level_location" {
