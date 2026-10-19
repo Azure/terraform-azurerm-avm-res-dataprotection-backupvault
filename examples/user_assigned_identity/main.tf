@@ -22,8 +22,8 @@ provider "azapi" {}
 
 # Naming
 module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.4.4"
+  source  = "Azure/avm-utl-naming/azure"
+  version = "0.2.0"
 }
 
 # Resource Group

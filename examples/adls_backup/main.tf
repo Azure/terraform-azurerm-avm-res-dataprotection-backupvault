@@ -2,6 +2,10 @@ terraform {
   required_version = ">= 1.7.0"
 
   required_providers {
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">= 4.0, < 5.0"
@@ -26,8 +30,12 @@ provider "azurerm" {
 # Randomly select an Azure region for the resource group
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.12.0"
+  version = "0.13.0"
+  providers = {
+    azapi = azapi
+  }
 
+  location         = var.location
   enable_telemetry = var.enable_telemetry
 }
 
@@ -38,8 +46,8 @@ resource "random_integer" "region_index" {
 
 # Naming module
 module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.4.4"
+  source  = "Azure/avm-utl-naming/azure"
+  version = "0.2.0"
 
   suffix = ["adls"]
 }

@@ -37,8 +37,8 @@ provider "azapi" {}
 
 # Naming module
 module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.4.4"
+  source  = "Azure/avm-utl-naming/azure"
+  version = "0.2.0"
 
   prefix = ["avm"]
   suffix = ["flexible"]
@@ -305,9 +305,9 @@ Version:
 
 ### <a name="module_naming"></a> [naming](#module\_naming)
 
-Source: Azure/naming/azurerm
+Source: Azure/avm-utl-naming/azure
 
-Version: 0.4.4
+Version: 0.2.0
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection
