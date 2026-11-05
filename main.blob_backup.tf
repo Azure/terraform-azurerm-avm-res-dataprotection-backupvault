@@ -133,10 +133,6 @@ resource "azapi_resource" "backup_instance_blob_storage" {
         datasourceType   = "Microsoft.Storage/storageAccounts/blobServices"
         resourceLocation = var.location
       }
-      dataSourceSetInfo = {
-        objectType = "DatasourceSetInfo"
-        resourceId = each.value.storage_account_id
-      }
       policyInfo = {
         policyId = azapi_resource.backup_policy_blob_storage[each.value.backup_policy_key].id
         policyParameters = {
@@ -165,8 +161,7 @@ resource "azapi_resource" "backup_instance_blob_storage" {
   lifecycle {
     create_before_destroy = false
     ignore_changes = [
-      body.properties.dataSourceInfo.objectType,
-      body.properties.dataSourceSetInfo.objectType
+      body.properties.dataSourceInfo.objectType
     ]
 
     precondition {
