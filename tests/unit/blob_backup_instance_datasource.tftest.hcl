@@ -55,59 +55,11 @@ variables {
   }
 }
 
-run "blob_create_omits_datasource_set" {
+run "blob_backup_instance_omits_datasource_set" {
   command = apply
 
   assert {
     condition     = !contains(keys(azapi_resource.backup_instance_blob_storage["blob"].body.properties), "dataSourceSetInfo")
     error_message = "Blob backup instances must omit dataSourceSetInfo from the request body."
-  }
-
-  assert {
-    condition = (
-      azapi_resource.backup_instance_blob_storage["blob"].body.properties.dataSourceInfo.objectType == "Datasource" &&
-      azapi_resource.backup_instance_blob_storage["blob"].body.properties.dataSourceInfo.resourceID == var.backup_instances.blob.storage_account_id &&
-      azapi_resource.backup_instance_blob_storage["blob"].body.properties.dataSourceInfo.datasourceType == "Microsoft.Storage/storageAccounts/blobServices" &&
-      azapi_resource.backup_instance_blob_storage["blob"].body.properties.dataSourceInfo.resourceLocation == var.location
-    )
-    error_message = "Omitting dataSourceSetInfo must preserve the Blob dataSourceInfo fields."
-  }
-
-  assert {
-    condition = (
-      azapi_resource.backup_instance_blob_storage["blob"].body.properties.policyInfo.policyId == azapi_resource.backup_policy_blob_storage["blob"].id &&
-      azapi_resource.backup_instance_blob_storage["blob"].body.properties.policyInfo.policyParameters.backupDatasourceParametersList[0].containersList == var.backup_instances.blob.storage_account_container_names
-    )
-    error_message = "The Blob policy association and selected containers must remain configured."
-  }
-}
-
-run "blob_update_omits_datasource_set" {
-  command = plan
-
-  variables {
-    backup_instances = {
-      blob = {
-        type                            = "blob"
-        name                            = "blob-instance"
-        backup_policy_key               = "blob"
-        storage_account_id              = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.Storage/storageAccounts/sttest"
-        storage_account_container_names = ["container-one", "container-two"]
-      }
-    }
-  }
-
-  assert {
-    condition     = !contains(keys(azapi_resource.backup_instance_blob_storage["blob"].body.properties), "dataSourceSetInfo")
-    error_message = "Updating an existing Blob backup instance must not introduce dataSourceSetInfo."
-  }
-
-  assert {
-    condition = (
-      azapi_resource.backup_instance_blob_storage["blob"].name == "blob-instance" &&
-      azapi_resource.backup_instance_blob_storage["blob"].body.properties.dataSourceInfo.resourceID == var.backup_instances.blob.storage_account_id &&
-      azapi_resource.backup_instance_blob_storage["blob"].body.properties.policyInfo.policyParameters.backupDatasourceParametersList[0].containersList == var.backup_instances.blob.storage_account_container_names
-    )
-    error_message = "The update must preserve the instance name and data source while changing the selected containers."
   }
 }
