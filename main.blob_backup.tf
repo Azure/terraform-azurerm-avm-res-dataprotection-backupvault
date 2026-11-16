@@ -133,10 +133,10 @@ resource "azapi_resource" "backup_instance_blob_storage" {
         datasourceType   = "Microsoft.Storage/storageAccounts/blobServices"
         resourceLocation = var.location
       }
-      dataSourceSetInfo = {
+      dataSourceSetInfo = each.value.include_data_source_set_info ? {
         objectType = "DatasourceSetInfo"
         resourceId = each.value.storage_account_id
-      }
+      } : null
       policyInfo = {
         policyId = azapi_resource.backup_policy_blob_storage[each.value.backup_policy_key].id
         policyParameters = {
