@@ -152,7 +152,7 @@ Common settings:
 
 Type-specific settings:
 - Disk: disk\_id, snapshot\_resource\_group\_name
-- Blob: storage\_account\_id, storage\_account\_container\_names
+- Blob: storage\_account\_id, storage\_account\_container\_names, include\_data\_source\_set\_info (default true; set to false to omit `dataSourceSetInfo` from the request, which is required when importing and managing a Blob backup instance that was created outside this module without it, as Azure rejects adding it to an existing instance)
 - ADLS (Azure Data Lake Storage Gen2): storage\_account\_id, storage\_account\_container\_names
 - AKS: kubernetes\_cluster\_id, backup\_datasource\_parameters
 - PostgreSQL: postgresql\_server\_id, postgresql\_database\_id, postgresql\_key\_vault\_secret\_id
@@ -173,6 +173,7 @@ map(object({
     # Blob-specific settings
     storage_account_id              = optional(string)
     storage_account_container_names = optional(list(string), [])
+    include_data_source_set_info    = optional(bool, true)
 
     # AKS-specific settings
     kubernetes_cluster_id = optional(string)

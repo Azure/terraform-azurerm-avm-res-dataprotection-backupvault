@@ -79,6 +79,7 @@ variable "backup_instances" {
     # Blob-specific settings
     storage_account_id              = optional(string)
     storage_account_container_names = optional(list(string), [])
+    include_data_source_set_info    = optional(bool, true)
 
     # AKS-specific settings
     kubernetes_cluster_id = optional(string)
@@ -114,7 +115,7 @@ Common settings:
 
 Type-specific settings:
 - Disk: disk_id, snapshot_resource_group_name
-- Blob: storage_account_id, storage_account_container_names
+- Blob: storage_account_id, storage_account_container_names, include_data_source_set_info (default true; set to false to omit `dataSourceSetInfo` from the request, which is required when importing and managing a Blob backup instance that was created outside this module without it, as Azure rejects adding it to an existing instance)
 - ADLS (Azure Data Lake Storage Gen2): storage_account_id, storage_account_container_names
 - AKS: kubernetes_cluster_id, backup_datasource_parameters
 - PostgreSQL: postgresql_server_id, postgresql_database_id, postgresql_key_vault_secret_id
